@@ -1,40 +1,146 @@
 #include "basic.hpp"
 #include <iostream>
 
-int main()
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_surface.h>
+#include <cmath>
+#include <iostream>
+#include <tuple>
+#include <vector>
+
+int main(int, char**)
 {
-  // Matrix<float, 3, 3> m;
+  SDL_Init(SDL_INIT_VIDEO);
 
-  // std::cout << m.getValue(0, 0) << '\n';
-  // std::cout << m << "\n\n";
+  SDL_Window* window;
+  SDL_Renderer* renderer;
+  SDL_Surface* surface;
+  SDL_Texture* texture;
+  SDL_Event event;
 
-  // m.setValue(1, 1, 2.5);
-  // std::cout << m << "\n\n";
+  const int WIDTH = 320, HEIGHT = 240;
 
-  // Matrix<int, 3, 3> m2 = m;
-  // std::cout << m2 << "\n\n";
+  SDL_CreateWindowAndRenderer("Renderer", WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE,
+                              &window, &renderer);
+  surface = SDL_CreateSurface(WIDTH, HEIGHT, SDL_PIXELFORMAT_UNKNOWN);
+  texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-  // m2 += m;
-  // std::cout << m2 << "\n\n";
+  SDL_DestroySurface(surface);
 
-  // m2 *= 3;
-  // std::cout << m2 << "\n\n";
+  while (1)
+  {
+    SDL_PollEvent(&event);
+    if (event.type == SDL_EVENT_QUIT) break;
+    // Faces surfaces
 
-  // m2 -= m;
-  // std::cout << m2 << "\n\n";
+    std::vector<std::tuple<int, int, int>> front = {
+        {  0,   0, 0},
+        {  0, 100, 0},
+        {100, 100, 0},
+        {100,   0, 0},
+    };
 
-  // m2 *= m;
-  // std::cout << m << "\n\n";
-  // std::cout << m2 << "\n\n";
+    std::vector<std::tuple<int, int, int>> back = {
+        {  0,   0, 100},
+        {  0, 100, 100},
+        {100, 100, 100},
+        {100,   0, 100},
+    };
 
-  // m2.transpose();
-  // std::cout << m2 << "\n\n";
+    std::vector<std::tuple<int, int, int>> left = {
+        {0,   0,   0},
+        {0,   0, 100},
+        {0, 100, 100},
+        {0, 100,   0},
+    };
 
-  // Matrix<float, 3, 3> id = Matrix<float, 3, 3>::Identity();
-  // std::cout << id << "\n\n";
-  // std::cout << m2 * id << "\n\n";
-  Matrix<float, 3, 3> isoproj = Matrix<float, 3, 3>::IsometricProjection();
-  std::cout << isoproj << "\n\n";
+    std::vector<std::tuple<int, int, int>> right = {
+        {100,   0,   0},
+        {100,   0, 100},
+        {100, 100, 100},
+        {100, 100,   0},
+    };
+
+    // 3D to 2D
+
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(renderer);
+    SDL_RenderTexture(renderer, texture, NULL, NULL);
+
+    SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
+
+    float cos = std::cos(M_PI);
+    float sin = std::sin(M_PI);
+
+    auto faces3d = {front, back, left, right};
+    for (std::vector<std::tuple<int, int, int>> face : faces3d)
+    {
+      for (long unsigned int i = 0; i < face.size(); i++)
+      {
+        std::tuple<int, int, int> l1 = face[i];
+        std::tuple<int, int, int> l2 = face[(i + 1) % face.size()];
+
+        // Apply translation
+        l1 = {
+            std::get<0>(l1) * cos + std::get<1>(l1) * (-sin),
+            std::get<0>(l1) * (sin) + std::get<1>(l1) * cos,
+            std::get<2>(l1),
+        };
+
+        l2 = {
+            std::get<0>(l2) * cos + std::get<1>(l2) * (-sin),
+            std::get<0>(l2) * (sin) + std::get<1>(l2) * cos,
+            std::get<2>(l2),
+        };
+
+        l1 = {
+            std::get<0>(l1) + 100,
+            std::get<1>(l1) + 100,
+            std::get<2>(l1) + 100,
+        };
+
+        l2 = {
+            std::get<0>(l2) + 100,
+            std::get<1>(l2) + 100,
+            std::get<2>(l2) + 100,
+        };
+
+        // Isometric 3d
+        l1 = {
+            1 / std::sqrt(6) *
+                (std::sqrt(3) * std::get<0>(l1) - std::get<1>(l1) +
+                 std::sqrt(2) * std::get<2>(l1)),
+            1 / std::sqrt(6) *
+                (2 * std::get<1>(l1) + std::sqrt(2) * std::get<2>(l1)),
+            1 / std::sqrt(6) *
+                (std::sqrt(3) * std::get<0>(l1) - std::get<1>(l1) +
+                 std::sqrt(2) * std::get<2>(l1)),
+        };
+
+        l2 = {
+            1 / std::sqrt(6) *
+                (std::sqrt(3) * std::get<0>(l2) - std::get<1>(l2) +
+                 std::sqrt(2) * std::get<2>(l2)),
+            1 / std::sqrt(6) *
+                (2 * std::get<1>(l2) + std::sqrt(2) * std::get<2>(l2)),
+            1 / std::sqrt(6) *
+                (std::sqrt(3) * std::get<0>(l2) - std::get<1>(l2) +
+                 std::sqrt(2) * std::get<2>(l2)),
+        };
+
+        SDL_RenderLine(renderer, std::get<0>(l1), std::get<1>(l1),
+                       std::get<0>(l2), std::get<1>(l2));
+      }
+    }
+    SDL_RenderPresent(renderer);
+  }
+
+  SDL_DestroyTexture(texture);
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
 
   return 0;
 }
