@@ -1,8 +1,8 @@
 #ifndef BASIC_HPP
 #define BASIC_HPP
 
-// 3d Forms
 #include <array>
+#include <cmath>
 #include <ostream>
 
 template <typename T, uint Width, uint Height> class Matrix
@@ -11,11 +11,31 @@ public:
   // Constructors
   Matrix() {}
 
+  static Matrix<T, Width, Height> Identity()
+  {
+    Matrix<T, Width, Height> m;
+    for (uint i = 0; i < Width; i++) m.setValue(i, i, 1);
+    return m;
+  }
+
+  static Matrix<float, 3, 3> IsometricProjection()
+  {
+    Matrix<float, 3, 3> projection;
+    projection.setValue(0, 0, std::sqrt(3));
+    projection.setValue(0, 2, std::sqrt(3));
+    projection.setValue(1, 0, -1);
+    projection.setValue(1, 1, 2);
+    projection.setValue(1, 2, -1);
+    projection.setValue(2, 0, std::sqrt(2));
+    projection.setValue(2, 1, std::sqrt(2));
+    projection.setValue(2, 2, std::sqrt(2));
+    return projection * (1 / std::sqrt(6));
+  }
+
   template <typename U, uint W, uint H> Matrix(const Matrix<U, W, H>& other)
   {
-    if (W != Width || H != Height)
-      throw std::runtime_error(
-          "Typecasting matrix is allowed on matrixes of same size");
+    static_assert(W == Width && H == Height,
+                  "Typecasting matrix is allowed on matrixes of same size");
     for (uint i = 0; i < W * H; i++) this->setValue(i, other.getValue(i));
   }
 
@@ -27,12 +47,11 @@ public:
     return this->data[pos];
   }
 
-  T getValue(const uint w, const uint h) const
+  T getValue(const uint line, const uint col) const
   {
-    if (w >= Width || h >= Height)
+    if (line >= Height || col >= Width)
       throw std::runtime_error("Access to element outside of matrix.");
-
-    return this->getValue(h * Height + w);
+    return this->getValue(line * Height + col);
   }
 
   // Setters
@@ -44,11 +63,12 @@ public:
     return;
   }
 
-  template <typename U> void setValue(const uint w, const uint h, const U value)
+  template <typename U>
+  void setValue(const uint line, const uint col, const U value)
   {
-    if (w >= Width || h >= Height)
+    if (col >= Width || line >= Height)
       throw std::runtime_error("Access to element outside of matrix.");
-    setValue(h * Height + w, value);
+    setValue(line * Height + col, value);
     return;
   }
 
@@ -65,16 +85,28 @@ public:
     return os;
   }
 
-  // Operations
+  void transpose(void)
+  {
+    T temp;
+    for (uint w = 0; w < Width; w++)
+      for (uint h = w + 1; h < Height; h++)
+      {
+        if (w == h) continue;
+        temp = this->getValue(w, h);
+        this->setValue(w, h, this->getValue(h, w));
+        this->setValue(h, w, temp);
+      }
+    return;
+  }
+
+  // Operations overload
 
   // Matrix summing
   template <typename U, uint W, uint H>
   Matrix<T, Width, Height> operator+(const Matrix<U, W, H>& rhs) const
   {
-    if (W != Width || H != Height)
-      throw std::runtime_error(
-          "Summing matrixes is allowed on matrixes of same size");
-
+    static_assert(W == Width && H == Height,
+                  "Summing matrixes is allowed on matrixes of same size");
     Matrix<T, Width, Height> result;
     for (uint i = 0; i < Width * Height; i++)
       result.setValue(i, this->getValue(i) + rhs.getValue(i));
@@ -82,12 +114,10 @@ public:
   }
 
   template <typename U, uint W, uint H>
-  void operator+=(const Matrix<U, W, H> rhs)
+  void operator+=(const Matrix<U, W, H>& rhs)
   {
-    if (W != Width || H != Height)
-      throw std::runtime_error(
-          "Summing matrixes is allowed on matrixes of same size");
-
+    static_assert(W == Width && H == Height,
+                  "Summing matrixes is allowed on matrixes of same size");
     for (uint i = 0; i < Width * Height; i++)
       this->setValue(i, this->getValue(i) + rhs.getValue(i));
   }
@@ -95,10 +125,8 @@ public:
   template <typename U, uint W, uint H>
   Matrix<T, Width, Height> operator-(const Matrix<U, W, H>& rhs) const
   {
-    if (W != Width || H != Height)
-      throw std::runtime_error(
-          "Summing matrixes is allowed on matrixes of same size");
-
+    static_assert(W == Width && H == Height,
+                  "Summing matrixes is allowed on matrixes of same size");
     Matrix<T, Width, Height> result;
     for (uint i = 0; i < Width * Height; i++)
       result.setValue(i, this->getValue(i) - rhs.getValue(i));
@@ -106,12 +134,10 @@ public:
   }
 
   template <typename U, uint W, uint H>
-  void operator-=(const Matrix<U, W, H> rhs)
+  void operator-=(const Matrix<U, W, H>& rhs)
   {
-    if (W != Width || H != Height)
-      throw std::runtime_error(
-          "Summing matrixes is allowed on matrixes of same size");
-
+    static_assert(W == Width && H == Height,
+                  "Summing matrixes is allowed on matrixes of same size");
     for (uint i = 0; i < Width * Height; i++)
       this->setValue(i, this->getValue(i) - rhs.getValue(i));
   }
@@ -133,20 +159,19 @@ public:
 
   // Matrix multiplication
   template <typename U, uint W, uint H>
-  Matrix<T, Width, Height> operator*(const Matrix<U, W, H> rhs) const
+  Matrix<T, Width, Height> operator*(const Matrix<U, W, H>& rhs) const
   {
-    if (Height != W)
-      throw std::runtime_error("lhs height needs to be equal to rhs width");
+    static_assert(Height == W, "lhs height needs to be equal to rhs width");
 
     // Using basic multiplication matrix, as we use only small matrixes
     T sum;
-    Matrix<T, Width, Height> result;
+    Matrix<T, Width, H> result;
     for (uint i = 0; i < Width; i++)
       for (uint j = 0; j < H; j++)
       {
         sum = 0;
         for (uint k = 0; k < Height; k++)
-          sum += this->getValue(i, k) + rhs.getValue(k, j);
+          sum += this->getValue(i, k) * rhs.getValue(k, j);
         result.setValue(i, j, sum);
       }
     return result;
@@ -154,19 +179,18 @@ public:
 
   // Unoptimised
   template <typename U, uint W, uint H>
-  void operator*=(const Matrix<U, W, H> rhs)
+  void operator*=(const Matrix<U, W, H>& rhs)
   {
-    if (Height != W)
-      throw std::runtime_error("lhs height needs to be equal to rhs width");
+    static_assert(Height == W, "lhs height needs to be equal to rhs width");
 
-    T sum;
-    Matrix<T, Width, Height> result;
+    T sum{};
+    Matrix<T, Width, H> result;
     for (uint i = 0; i < Width; i++)
       for (uint j = 0; j < H; j++)
       {
         sum = 0;
         for (uint k = 0; k < Height; k++)
-          sum += this->getValue(i, k) + rhs.getValue(k, j);
+          sum += this->getValue(i, k) * rhs.getValue(k, j);
         result.setValue(i, j, sum);
       }
 
