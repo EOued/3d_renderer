@@ -4,21 +4,44 @@
 #include <array>
 #include <cmath>
 #include <ostream>
+#include <vector>
 
-template <typename T, uint Width, uint Height> class Matrix
+namespace linalg
+{
+
+template <typename T, uint Lines, uint Columns> class Matrix
 {
 public:
   // Constructors
   Matrix() {}
-
-  static Matrix<T, Width, Height> Identity()
+  Matrix(std::initializer_list<std::initializer_list<T>> _data)
   {
-    Matrix<T, Width, Height> m;
-    for (uint i = 0; i < Width; i++) m.setValue(i, i, 1);
+    uint j = 0;
+    for (auto& row : _data)
+    {
+      uint i = 0;
+      for (auto& val : row) this->setValue(j, i++, val);
+      j++;
+    }
+  }
+
+  Matrix(std::initializer_list<T> _data)
+  {
+
+    static_assert(Lines == 1, "Initialisation with non-nested initialiser list "
+                              "is allowed for vectors only");
+    uint i = 0;
+    for (auto& val : _data) this->setValue(0, i++, val);
+  }
+
+  const static Matrix<T, Lines, Columns> Identity()
+  {
+    Matrix<T, Lines, Columns> m;
+    for (uint i = 0; i < Lines; i++) m.setValue(i, i, 1);
     return m;
   }
 
-  static Matrix<float, 3, 3> IsometricProjection()
+  const static Matrix<float, 3, 3> IsometricProjection()
   {
     Matrix<float, 3, 3> projection;
     projection.setValue(0, 0, std::sqrt(3));
@@ -32,32 +55,34 @@ public:
     return projection * (1 / std::sqrt(6));
   }
 
-  template <typename U, uint W, uint H> Matrix(const Matrix<U, W, H>& other)
+  template <typename U, uint _Lines, uint _Columns>
+  Matrix(const Matrix<U, _Lines, _Columns>& other)
   {
-    static_assert(W == Width && H == Height,
+    static_assert(Lines == _Lines && Columns == _Columns,
                   "Typecasting matrix is allowed on matrixes of same size");
-    for (uint i = 0; i < W * H; i++) this->setValue(i, other.getValue(i));
+    for (uint i = 0; i < Lines * Columns; i++)
+      this->setValue(i, other.getValue(i));
   }
 
   // Getters
   T getValue(const uint pos) const
   {
-    if (pos >= Height * Width)
+    if (pos >= Lines * Columns)
       throw std::runtime_error("Access to element outside of matrix.");
     return this->data[pos];
   }
 
   T getValue(const uint line, const uint col) const
   {
-    if (line >= Height || col >= Width)
+    if (line >= Lines || col >= Columns)
       throw std::runtime_error("Access to element outside of matrix.");
-    return this->getValue(line * Height + col);
+    return this->getValue(line * Lines + col);
   }
 
   // Setters
   template <typename U> void setValue(const uint pos, const U value)
   {
-    if (pos >= Height * Width)
+    if (pos >= Lines * Columns)
       throw std::runtime_error("Access to element outside of matrix.");
     this->data[pos] = static_cast<T>(value);
     return;
@@ -66,19 +91,20 @@ public:
   template <typename U>
   void setValue(const uint line, const uint col, const U value)
   {
-    if (col >= Width || line >= Height)
+
+    if (col >= Columns || line >= Lines)
       throw std::runtime_error("Access to element outside of matrix.");
-    setValue(line * Height + col, value);
+    setValue(line * Lines + col, value);
     return;
   }
 
   // Print
   friend std::ostream& operator<<(std::ostream& os,
-                                  const Matrix<T, Width, Height>& p)
+                                  const Matrix<T, Lines, Columns>& p)
   {
-    for (uint i = 0; i < Height * Width; i++)
+    for (uint i = 0; i < Lines * Columns; i++)
     {
-      if (i != 0 && !(i % Height)) os << '\n';
+      if (i != 0 && !(i % Columns)) os << '\n';
       os << p.getValue(i) << ' ';
     }
 
@@ -88,13 +114,13 @@ public:
   void transpose(void)
   {
     T temp;
-    for (uint w = 0; w < Width; w++)
-      for (uint h = w + 1; h < Height; h++)
+    for (uint col = 0; col < Columns; col++)
+      for (uint lin = col + 1; lin < Lines; lin++)
       {
-        if (w == h) continue;
-        temp = this->getValue(w, h);
-        this->setValue(w, h, this->getValue(h, w));
-        this->setValue(h, w, temp);
+        if (lin == col) continue;
+        temp = this->getValue(lin, col);
+        this->setValue(lin, col, this->getValue(col, lin));
+        this->setValue(col, lin, temp);
       }
     return;
   }
@@ -102,75 +128,80 @@ public:
   // Operations overload
 
   // Matrix summing
-  template <typename U, uint W, uint H>
-  Matrix<T, Width, Height> operator+(const Matrix<U, W, H>& rhs) const
+  template <typename U, uint _Lines, uint _Columns>
+  Matrix<T, Lines, Columns>
+  operator+(const Matrix<U, _Lines, _Columns>& rhs) const
   {
-    static_assert(W == Width && H == Height,
+    static_assert(Lines == _Lines && Columns == _Columns,
                   "Summing matrixes is allowed on matrixes of same size");
-    Matrix<T, Width, Height> result;
-    for (uint i = 0; i < Width * Height; i++)
+    Matrix<T, Lines, Columns> result;
+    for (uint i = 0; i < Lines * Columns; i++)
       result.setValue(i, this->getValue(i) + rhs.getValue(i));
     return result;
   }
 
-  template <typename U, uint W, uint H>
-  void operator+=(const Matrix<U, W, H>& rhs)
+  template <typename U, uint _Lines, uint _Columns>
+  void operator+=(const Matrix<U, _Lines, _Columns>& rhs)
   {
-    static_assert(W == Width && H == Height,
+    static_assert(Lines == _Lines && Columns == _Columns,
                   "Summing matrixes is allowed on matrixes of same size");
-    for (uint i = 0; i < Width * Height; i++)
+    for (uint i = 0; i < Lines * Columns; i++)
       this->setValue(i, this->getValue(i) + rhs.getValue(i));
   }
 
-  template <typename U, uint W, uint H>
-  Matrix<T, Width, Height> operator-(const Matrix<U, W, H>& rhs) const
+  template <typename U, uint _Lines, uint _Columns>
+  Matrix<T, Lines, Columns>
+  operator-(const Matrix<U, _Lines, _Columns>& rhs) const
   {
-    static_assert(W == Width && H == Height,
+    static_assert(Lines == _Lines && Columns == _Columns,
                   "Summing matrixes is allowed on matrixes of same size");
-    Matrix<T, Width, Height> result;
-    for (uint i = 0; i < Width * Height; i++)
+    Matrix<T, Lines, Columns> result;
+    for (uint i = 0; i < Lines * Columns; i++)
       result.setValue(i, this->getValue(i) - rhs.getValue(i));
     return result;
   }
 
-  template <typename U, uint W, uint H>
-  void operator-=(const Matrix<U, W, H>& rhs)
+  template <typename U, uint _Lines, uint _Columns>
+  void operator-=(const Matrix<U, _Lines, _Columns>& rhs)
   {
-    static_assert(W == Width && H == Height,
+    static_assert(Lines == _Lines && Columns == _Columns,
                   "Summing matrixes is allowed on matrixes of same size");
-    for (uint i = 0; i < Width * Height; i++)
+    for (uint i = 0; i < Lines * Columns; i++)
       this->setValue(i, this->getValue(i) - rhs.getValue(i));
   }
 
   // Scalar multiplication
-  template <typename U> Matrix<T, Width, Height> operator*(const U scalar) const
+  template <typename U>
+  Matrix<T, Lines, Columns> operator*(const U scalar) const
   {
-    Matrix<T, Width, Height> result;
-    for (uint i = 0; i < Width * Height; i++)
+    Matrix<T, Lines, Columns> result;
+    for (uint i = 0; i < Lines * Columns; i++)
       result.setValue(i, scalar * this->getValue(i));
     return result;
   }
 
   template <typename U> void operator*=(const U scalar)
   {
-    for (uint i = 0; i < Width * Height; i++)
+    for (uint i = 0; i < Lines * Columns; i++)
       this->setValue(i, scalar * this->getValue(i));
   }
 
   // Matrix multiplication
-  template <typename U, uint W, uint H>
-  Matrix<T, Width, Height> operator*(const Matrix<U, W, H>& rhs) const
+  template <typename U, uint _Lines, uint _Columns>
+  Matrix<T, Lines, Columns>
+  operator*(const Matrix<U, _Lines, _Columns>& rhs) const
   {
-    static_assert(Height == W, "lhs height needs to be equal to rhs width");
+    static_assert(Columns == _Lines,
+                  "lhs columns number needs to be equal to rhs lines number");
 
     // Using basic multiplication matrix, as we use only small matrixes
     T sum;
-    Matrix<T, Width, H> result;
-    for (uint i = 0; i < Width; i++)
-      for (uint j = 0; j < H; j++)
+    Matrix<T, Lines, Columns> result;
+    for (uint i = 0; i < Lines; i++)
+      for (uint j = 0; j < _Columns; j++)
       {
         sum = 0;
-        for (uint k = 0; k < Height; k++)
+        for (uint k = 0; k < Columns; k++)
           sum += this->getValue(i, k) * rhs.getValue(k, j);
         result.setValue(i, j, sum);
       }
@@ -178,28 +209,33 @@ public:
   }
 
   // Unoptimised
-  template <typename U, uint W, uint H>
-  void operator*=(const Matrix<U, W, H>& rhs)
+  template <typename U, uint _Lines, uint _Columns>
+  void operator*=(const Matrix<U, _Lines, _Columns>& rhs)
   {
-    static_assert(Height == W, "lhs height needs to be equal to rhs width");
+    static_assert(Columns == _Lines,
+                  "lhs columns number needs to be equal to rhs lines number");
 
-    T sum{};
-    Matrix<T, Width, H> result;
-    for (uint i = 0; i < Width; i++)
-      for (uint j = 0; j < H; j++)
+    // Using basic multiplication matrix, as we use only small matrixes
+    T sum;
+    Matrix<T, Lines, Columns> result;
+    for (uint i = 0; i < Lines; i++)
+      for (uint j = 0; j < _Columns; j++)
       {
         sum = 0;
-        for (uint k = 0; k < Height; k++)
+        for (uint k = 0; k < Columns; k++)
           sum += this->getValue(i, k) * rhs.getValue(k, j);
         result.setValue(i, j, sum);
       }
 
-    for (uint i = 0; i < Width * Height; i++)
+    for (uint i = 0; i < Lines * Columns; i++)
       this->setValue(i, result.getValue(i));
   }
 
 private:
-  std::array<T, Width * Height> data;
+  std::array<T, Lines * Columns> data;
 };
 
+template <typename T, uint N> using Vector = Matrix<T, 1, N>;
+
+} // namespace linalg
 #endif

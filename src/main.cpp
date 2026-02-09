@@ -12,6 +12,7 @@
 
 int main(int, char**)
 {
+
   SDL_Init(SDL_INIT_VIDEO);
 
   SDL_Window* window;
@@ -33,30 +34,30 @@ int main(int, char**)
   {
     SDL_PollEvent(&event);
     if (event.type == SDL_EVENT_QUIT) break;
-    // Faces surfaces
 
-    std::vector<std::tuple<int, int, int>> front = {
+    // Faces surfaces
+    std::vector<linalg::Vector<int, 3>> front = {
         {  0,   0, 0},
         {  0, 100, 0},
         {100, 100, 0},
         {100,   0, 0},
     };
 
-    std::vector<std::tuple<int, int, int>> back = {
+    std::vector<linalg::Vector<int, 3>> back = {
         {  0,   0, 100},
         {  0, 100, 100},
         {100, 100, 100},
         {100,   0, 100},
     };
 
-    std::vector<std::tuple<int, int, int>> left = {
+    std::vector<linalg::Vector<int, 3>> left = {
         {0,   0,   0},
         {0,   0, 100},
         {0, 100, 100},
         {0, 100,   0},
     };
 
-    std::vector<std::tuple<int, int, int>> right = {
+    std::vector<linalg::Vector<int, 3>> right = {
         {100,   0,   0},
         {100,   0, 100},
         {100, 100, 100},
@@ -71,67 +72,25 @@ int main(int, char**)
 
     SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
 
-    float cos = std::cos(M_PI);
-    float sin = std::sin(M_PI);
+    // float cos = std::cos(M_PI);
+    // float sin = std::sin(M_PI);
 
     auto faces3d = {front, back, left, right};
-    for (std::vector<std::tuple<int, int, int>> face : faces3d)
+    for (std::vector<linalg::Vector<int, 3>> face : faces3d)
     {
       for (long unsigned int i = 0; i < face.size(); i++)
       {
-        std::tuple<int, int, int> l1 = face[i];
-        std::tuple<int, int, int> l2 = face[(i + 1) % face.size()];
+        linalg::Vector<int, 3> l1 = face[i];
+        linalg::Vector<int, 3> l2 = face[(i + 1) % face.size()];
 
-        // Apply translation
-        l1 = {
-            std::get<0>(l1) * cos + std::get<1>(l1) * (-sin),
-            std::get<0>(l1) * (sin) + std::get<1>(l1) * cos,
-            std::get<2>(l1),
-        };
+        linalg::Vector<int, 3> _l1 =
+            l1 * linalg::Matrix<float, 3, 3>::IsometricProjection();
 
-        l2 = {
-            std::get<0>(l2) * cos + std::get<1>(l2) * (-sin),
-            std::get<0>(l2) * (sin) + std::get<1>(l2) * cos,
-            std::get<2>(l2),
-        };
+        linalg::Vector<int, 3> _l2 =
+            l2 * linalg::Matrix<float, 3, 3>::IsometricProjection();
 
-        l1 = {
-            std::get<0>(l1) + 100,
-            std::get<1>(l1) + 100,
-            std::get<2>(l1) + 100,
-        };
-
-        l2 = {
-            std::get<0>(l2) + 100,
-            std::get<1>(l2) + 100,
-            std::get<2>(l2) + 100,
-        };
-
-        // Isometric 3d
-        l1 = {
-            1 / std::sqrt(6) *
-                (std::sqrt(3) * std::get<0>(l1) - std::get<1>(l1) +
-                 std::sqrt(2) * std::get<2>(l1)),
-            1 / std::sqrt(6) *
-                (2 * std::get<1>(l1) + std::sqrt(2) * std::get<2>(l1)),
-            1 / std::sqrt(6) *
-                (std::sqrt(3) * std::get<0>(l1) - std::get<1>(l1) +
-                 std::sqrt(2) * std::get<2>(l1)),
-        };
-
-        l2 = {
-            1 / std::sqrt(6) *
-                (std::sqrt(3) * std::get<0>(l2) - std::get<1>(l2) +
-                 std::sqrt(2) * std::get<2>(l2)),
-            1 / std::sqrt(6) *
-                (2 * std::get<1>(l2) + std::sqrt(2) * std::get<2>(l2)),
-            1 / std::sqrt(6) *
-                (std::sqrt(3) * std::get<0>(l2) - std::get<1>(l2) +
-                 std::sqrt(2) * std::get<2>(l2)),
-        };
-
-        SDL_RenderLine(renderer, std::get<0>(l1), std::get<1>(l1),
-                       std::get<0>(l2), std::get<1>(l2));
+        SDL_RenderLine(renderer, _l1.getValue(0), _l1.getValue(1),
+                       _l2.getValue(0), _l2.getValue(1));
       }
     }
     SDL_RenderPresent(renderer);
