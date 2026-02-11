@@ -254,6 +254,18 @@ public:
     return (*this) * (*this).transpose();
   }
 
+  template <typename U, size_t _Lines>
+  T dot_product(const Matrix<U, _Lines, 1>& rhs) const
+  {
+    static_assert(Columns == 1,
+                  "Dot product is only allowed on (mathematical) vectors.");
+    static_assert(Lines == _Lines,
+                  "Dot product is only allowed on vectors of same size.");
+    T sum = 0;
+    for (size_t i = 0; i < Lines; i++) sum += (*this)[i] * rhs[i];
+    return sum;
+  }
+
   // Data accessing
   T& operator[](std::size_t idx)
   {
