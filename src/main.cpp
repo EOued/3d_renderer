@@ -87,14 +87,8 @@ int main(int, char**)
       {0, 0, 2}
   };
 
-  double theta_x = 0;
-  double theta_y = 0;
-
   double origin2D_x = 100;
   double origin2D_y = 100;
-
-  const linalg::Vector<int, 3> k_x = {1, 0, 0};
-  const linalg::Vector<int, 3> k_y = {0, 1, 0};
 
   while (1)
   {
@@ -124,12 +118,6 @@ int main(int, char**)
         linalg::Matrix<int, 3, 1> _l1 = l1;
         linalg::Matrix<int, 3, 1> _l2 = l2;
 
-        _l1 = linalg::Rodrigues_Formula(theta_x, l1, k_x);
-        _l1 = linalg::Rodrigues_Formula(theta_y, _l1, k_y);
-
-        _l2 = linalg::Rodrigues_Formula(theta_x, l2, k_x);
-        _l2 = linalg::Rodrigues_Formula(theta_y, _l2, k_y);
-
         // To 2D :
         SDL_RenderLine(renderer, _l1[0] + origin2D_x, _l1[1] + origin2D_y,
                        _l2[0] + origin2D_x, _l2[1] + origin2D_y);
@@ -148,10 +136,7 @@ int main(int, char**)
         {
           switch (event.key.key)
           {
-          case SDLK_RIGHT:
-            theta_x -= 0.05;
-            theta_x = fmod(theta_x, 2 * M_PI);
-            break;
+          case SDLK_RIGHT: break;
           default: break;
           }
           running = 0; // exit loop after key press
