@@ -229,7 +229,7 @@ public:
     return this->data[idx1 * Columns + idx2];
   }
 
-private:
+protected:
   std::array<T, Lines * Columns> data;
 };
 
@@ -285,6 +285,28 @@ public:
     T sum = 0;
     for (size_t i = 0; i < N; i++) sum += (*this)[i] * rhs[i];
     return sum;
+  }
+
+  auto norm(void) const
+  {
+    T sum = 0;
+    for (T value : this->data) sum += std::pow(value, 2);
+    return std::sqrt(sum);
+  }
+
+  void normalise(void)
+  {
+    T norm = this->norm();
+    for (size_t i = 0; i < N; i++) (*this)[i] /= norm;
+    return;
+  }
+
+  Vector<T, N> normalized(void) const
+  {
+    T norm = this->norm();
+    Vector<T, N> result;
+    for (size_t i = 0; i < N; i++) result[i] = (*this)[i] / norm;
+    return result;
   }
 
   // Matrix multiplication

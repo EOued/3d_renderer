@@ -96,17 +96,17 @@ int main(int, char**)
   };
 
   // Faces surfaces
-  std::vector<linalg::Vector<int, 3>> x_axis = {
+  std::vector<linalg::Vector<double, 3>> x_axis = {
       {0, 0, 0},
       {2, 0, 0}
   };
 
-  std::vector<linalg::Vector<int, 3>> y_axis = {
+  std::vector<linalg::Vector<double, 3>> y_axis = {
       {0, 0, 0},
       {0, 2, 0}
   };
 
-  std::vector<linalg::Vector<int, 3>> z_axis = {
+  std::vector<linalg::Vector<double, 3>> z_axis = {
       {0, 0, 0},
       {0, 0, 2}
   };
@@ -117,8 +117,7 @@ int main(int, char**)
   // Simulating cursor position
   linalg::Vector<double, 2> P = {100.0f, 100.0f};
   linalg::Vector<double, 2> Q = {100.0f, 100.0f};
-  linalg::Vector<double, 3> p, q;
-  linalg::Matrix<double, 3, 1> n;
+  linalg::Vector<double, 3> p, q, n;
   linalg::Quaternion<double> rot;
   linalg::Quaternion<double> rot_inv;
   int width, height, radius = 1;
@@ -136,11 +135,11 @@ int main(int, char**)
     SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
 
     auto faces3d = {front, back, left, right, top, bottom};
-    // auto axes    = {x_axis, y_axis, z_axis};
+    auto axes    = {x_axis, y_axis, z_axis};
 
     // Computing trackball rotation
     P = {100.0f, 500.0f};
-    Q = {100.0f, 300.0f};
+    Q = {100.0f, 600.0f};
 
     // Convertion to canonical space
     SDL_GetWindowSize(window, &width, &height);
@@ -153,15 +152,9 @@ int main(int, char**)
 
     // Works for radius = 1
 
-    double p_norm =
-        std::sqrt(std::pow(p[0], 2) + std::pow(p[1], 2) + std::pow(p[2], 2));
-    double q_norm =
-        std::sqrt(std::pow(q[0], 2) + std::pow(q[1], 2) + std::pow(q[2], 2));
-
-    theta = std::acos((p.dot_product(q)) / (p_norm * q_norm));
+    theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
     n     = p.cross_product(q);
-    n *= 1 /
-         std::sqrt(std::pow(n[0], 2) + std::pow(n[1], 2) + std::pow(n[2], 2));
+    n.normalise();
 
     rot     = linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2));
     rot_inv = rot.inverse();
@@ -196,6 +189,33 @@ int main(int, char**)
         SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
                        l2[0] + origin2D_x, l2[1] + origin2D_y);
       }
+    }
+
+    for (std::vector<linalg::Vector<double, 3>> axe : axes)
+    {
+      linalg::Vector<double, 3> l1 = axe[0];
+      linalg::Vector<double, 3> l2 = axe[1];
+
+      l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
+      l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+
+      linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
+      linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
+
+      std::cout << "l1 " << l1 << "\n";
+      std::cout << "l2 " << l2 << "\n";
+
+      _l1 = rot * _l1 * rot_inv;
+      _l2 = rot * _l2 * rot_inv;
+
+      std::cout << "Rotated l1 " << _l1 << "\n";
+      std::cout << "Rotated l2 " << _l2 << "\n";
+
+      l1 = _l1._v();
+      l2 = _l2._v();
+
+      // // To 2D :
+      SDL_RenderLine(renderer, l1[0] + 10, l1[1] + 10, l2[0] + 10, l2[1] + 10);
     }
     SDL_RenderPresent(renderer);
 
