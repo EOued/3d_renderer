@@ -28,7 +28,7 @@ inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
                                       static_cast<double>(s_height) - 1};
   center *= 1.0f / 2.0f;
   int scale = std::min(s_width, s_height) - 1;
-  vector[0] = (2.0f / scale) * (vector[0] - center[0]);
+  vector[0] = -(2.0f / scale) * (vector[0] - center[0]);
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
 }
 
@@ -154,7 +154,7 @@ int main(int, char**)
     n     = p.cross_product(q);
     n.normalise();
 
-    rot     = linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2));
+    rot     = linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
     rot_inv = rot.inverse();
 
     // Rendering
@@ -225,7 +225,10 @@ int main(int, char**)
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
         {
           if (event.button.button == SDL_BUTTON_LEFT)
-            MouseFixedPoint = {event.button.x, event.button.y};
+          {
+            MouseFixedPoint    = {event.button.x, event.button.y};
+            MouseRotatingPoint = {event.button.x, event.button.y};
+          }
           running = 0;
           break;
         }
