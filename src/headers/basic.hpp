@@ -27,13 +27,6 @@ public:
     }
   }
 
-  Matrix(std::initializer_list<T> _data)
-    requires(Lines == 1)
-  {
-    size_t i = 0;
-    for (auto& val : _data) (*this)[0, i++] = val;
-  }
-
   const static Matrix<T, Lines, Columns> Identity()
   {
     Matrix<T, Lines, Columns> m;
@@ -123,51 +116,40 @@ public:
   // Operations overload
 
   // Matrix summing
-  template <typename U, size_t _Lines, size_t _Columns>
-  Matrix<T, Lines, Columns>
-  operator+(const Matrix<U, _Lines, _Columns>& rhs) const
+  template <typename U>
+  auto operator+(const Matrix<U, Lines, Columns>& rhs) const
   {
-    static_assert(Lines == _Lines && Columns == _Columns,
-                  "Summing matrixes is allowed on matrixes of same size");
-    Matrix<T, Lines, Columns> result;
+    using R = std::common_type_t<T, U>;
+    Matrix<R, Lines, Columns> result;
     for (size_t i = 0; i < Lines * Columns; i++)
       result[i] = (*this)[i] + rhs[i];
     return result;
   }
 
-  template <typename U, size_t _Lines, size_t _Columns>
-  void operator+=(const Matrix<U, _Lines, _Columns>& rhs)
+  template <typename U> void operator+=(const Matrix<U, Lines, Columns>& rhs)
   {
-    static_assert(Lines == _Lines && Columns == _Columns,
-                  "Summing matrixes is allowed on matrixes of same size");
     for (size_t i = 0; i < Lines * Columns; i++)
       (*this)[i] = (*this)[i] + rhs[i];
   }
 
-  template <typename U, size_t _Lines, size_t _Columns>
-  Matrix<T, Lines, Columns>
-  operator-(const Matrix<U, _Lines, _Columns>& rhs) const
+  template <typename U>
+  auto operator-(const Matrix<U, Lines, Columns>& rhs) const
   {
-    static_assert(Lines == _Lines && Columns == _Columns,
-                  "Summing matrixes is allowed on matrixes of same size");
-    Matrix<T, Lines, Columns> result;
+    Matrix<std::common_type_t<T, U>, Lines, Columns> result;
     for (size_t i = 0; i < Lines * Columns; i++)
       result[i] = (*this)[i] - rhs[i];
     return result;
   }
 
-  template <typename U, size_t _Lines, size_t _Columns>
-  void operator-=(const Matrix<U, _Lines, _Columns>& rhs)
+  template <typename U> void operator-=(const Matrix<U, Lines, Columns>& rhs)
   {
-    static_assert(Lines == _Lines && Columns == _Columns,
-                  "Summing matrixes is allowed on matrixes of same size");
-
     for (size_t i = 0; i < Lines * Columns; i++)
       (*this)[i] = (*this)[i] - rhs[i];
   }
 
   // Scalar multiplication
   template <typename U>
+    requires std::is_arithmetic_v<U>
   Matrix<T, Lines, Columns> operator*(const U scalar) const
   {
     Matrix<T, Lines, Columns> result;
@@ -176,23 +158,23 @@ public:
     return result;
   }
 
-  template <typename U> void operator*=(const U scalar)
+  template <typename U>
+    requires std::is_arithmetic_v<U>
+  void operator*=(const U scalar)
   {
     for (size_t i = 0; i < Lines * Columns; i++)
       (*this)[i] = scalar * (*this)[i];
   }
 
   // Matrix multiplication
-  template <typename U, size_t _Lines, size_t _Columns>
+  template <typename U, size_t _Columns>
   Matrix<T, Lines, _Columns>
-  operator*(const Matrix<U, _Lines, _Columns>& rhs) const
+  operator*(const Matrix<U, Columns, _Columns>& rhs) const
   {
-    static_assert(Columns == _Lines,
-                  "lhs columns number needs to be equal to rhs lines number");
-
     // Using basic multiplication matrix, as we use only small matrixes
-    T sum;
-    Matrix<T, Lines, _Columns> result;
+    using R = std::common_type_t<T, U>;
+    R sum;
+    Matrix<R, Lines, _Columns> result;
     for (size_t i = 0; i < Lines; i++)
       for (size_t j = 0; j < _Columns; j++)
       {
@@ -204,66 +186,20 @@ public:
   }
 
   // Unoptimised
-  template <typename U, size_t _Lines, size_t _Columns>
-  void operator*=(const Matrix<U, _Lines, _Columns>& rhs)
+  template <typename U> void operator*=(const Matrix<U, Columns, Columns>& rhs)
   {
-    static_assert(Columns == _Lines && Columns == _Columns,
-                  "Matrix multiplication assignement is allowed if the result "
-                  "matrix is the same size as the left-size operand");
-
     // Using basic multiplication matrix, as we use only small matrixes
-    T sum;
-    Matrix<T, Lines, Columns> result;
+    using R = std::common_type<T, U>;
+    R sum;
+    Matrix<R, Lines, Columns> result;
     for (size_t i = 0; i < Lines; i++)
-      for (size_t j = 0; j < _Columns; j++)
+      for (size_t j = 0; j < Columns; j++)
       {
         sum = 0;
         for (size_t k = 0; k < Columns; k++) sum += (*this)[i, k] * rhs[k, j];
         result[i, j] = sum;
       }
     (*this) = std::move(result);
-  }
-
-  // Dot product
-  template <typename U>
-  Matrix<T, 3, 1> cross_product(const Matrix<U, 3, 1>& rhs) const
-  {
-    static_assert(Lines * Columns == 3,
-                  "Cross product is allowed on vectors only");
-
-    const linalg::Matrix<T, 3, 3> cp_x = {
-        {          0, -(*this)[2],  (*this)[1]},
-        { (*this)[2],           0, -(*this)[1]},
-        {-(*this)[1],  (*this)[0],           0}
-    };
-    return cp_x * rhs;
-  }
-
-  template <typename U, size_t _Lines>
-  Matrix<T, Lines, _Lines> outer_product(const Matrix<U, _Lines, 1>& rhs) const
-  {
-    static_assert(Columns == 1,
-                  "Outer product is only allowed for (mathematical) vectors.");
-    return (*this) * rhs.transpose();
-  }
-
-  Matrix<T, Lines, Lines> outer_product() const
-  {
-    static_assert(Columns == 1,
-                  "Outer product is only allowed for (mathematical) vectors.");
-    return (*this) * (*this).transpose();
-  }
-
-  template <typename U, size_t _Lines>
-  T dot_product(const Matrix<U, _Lines, 1>& rhs) const
-  {
-    static_assert(Columns == 1,
-                  "Dot product is only allowed on (mathematical) vectors.");
-    static_assert(Lines == _Lines,
-                  "Dot product is only allowed on vectors of same size.");
-    T sum = 0;
-    for (size_t i = 0; i < Lines; i++) sum += (*this)[i] * rhs[i];
-    return sum;
   }
 
   // Data accessing
@@ -297,38 +233,127 @@ private:
   std::array<T, Lines * Columns> data;
 };
 
-template <typename T, size_t N> using Vector = Matrix<T, 1, N>;
-
-// algebra formulas
-template <typename T>
-Vector<T, 3> Rodrigues_Formula(double angle, Matrix<T, 3, 1> vector,
-                               Matrix<T, 3, 1> axis)
+template <typename T, size_t Lines, size_t Columns, typename U>
+Matrix<T, Lines, Columns> operator*(const U scalar,
+                                    const Matrix<T, Lines, Columns>& rhs)
 {
-  return vector * std::cos(angle) +
-         axis.cross_product(vector) * std::sin(angle) +
-         axis.outer_product() * vector * (1 - cos(angle));
+  Matrix<T, Lines, Columns> result;
+  for (size_t i = 0; i < Lines * Columns; i++) result[i] = scalar * rhs[i];
+  return result;
 }
 
-template <typename T>
-Vector<T, 3> Rodrigues_Formula(double angle, Matrix<T, 1, 3> vector,
-                               Matrix<T, 3, 1> axis)
+template <typename T, size_t N> class Vector : public Matrix<T, N, 1>
 {
-  return Rodrigues_Formula(angle, vector, axis.transpose());
-}
+public:
+  using Matrix<T, N, 1>::Matrix;
+  template <typename U> Vector(const Matrix<U, N, 1>& m) : Matrix<T, N, 1>(m) {}
 
-template <typename T>
-Vector<T, 3> Rodrigues_Formula(double angle, Matrix<T, 3, 1> vector,
-                               Matrix<T, 1, 3> axis)
+  Vector(std::initializer_list<T> _data)
+  {
+    size_t i = 0;
+    for (auto& val : _data) (*this)[i++] = val;
+  }
+
+  // Dot product
+  template <typename U>
+  Vector<T, 3> cross_product(const Vector<U, 3>& rhs) const
+    requires(N == 3)
+  {
+    const linalg::Matrix<T, 3, 3> cp_x = {
+        {          0, -(*this)[2],  (*this)[1]},
+        { (*this)[2],           0, -(*this)[0]},
+        {-(*this)[1],  (*this)[0],           0},
+    };
+    return Vector<T, N>(cp_x * rhs);
+  }
+
+  template <typename U, size_t _N>
+  Matrix<T, N, _N> outer_product(const Vector<U, _N>& rhs) const
+  {
+    return (*this) * rhs.transpose();
+  }
+
+  Matrix<T, N, N> outer_product() const
+  {
+    return (*this) * (*this).transpose();
+  }
+
+  template <typename U, size_t _N>
+  T dot_product(const Vector<U, _N>& rhs) const
+    requires(N == _N)
+  {
+    T sum = 0;
+    for (size_t i = 0; i < N; i++) sum += (*this)[i] * rhs[i];
+    return sum;
+  }
+
+  // Matrix multiplication
+  template <typename U, size_t Columns>
+  Matrix<T, N, Columns> operator*(const Matrix<U, 1, Columns>& rhs) const
+  {
+    return static_cast<const Matrix<T, N, 1>&>(*this) * rhs;
+  }
+
+  // Print
+  friend std::ostream& operator<<(std::ostream& os, const Vector<T, N>& p)
+  {
+    os << p.transpose();
+    return os;
+  }
+};
+
+template <typename T> class Quaternion
 {
-  return Rodrigues_Formula(angle, vector.transpose(), axis);
-}
+public:
+  Quaternion() {}
 
-template <typename T>
-Vector<T, 3> Rodrigues_Formula(double angle, Matrix<T, 1, 3> vector,
-                               Matrix<T, 1, 3> axis)
-{
-  return Rodrigues_Formula(angle, vector.transpose(), axis.transpose());
-}
+  Quaternion(T _w, T _v) : w(_w)
+  {
+    this->v[0] = _v;
+    this->v[1] = _v;
+    this->v[2] = _v;
+  }
+  Quaternion(Matrix<T, 3, 1> _v) : v(_v) {}
+  Quaternion(Vector<T, 3> _v) : v(_v) {}
+  Quaternion(T _w, Matrix<T, 3, 1> _v) : w(_w), v(_v) {}
+  Quaternion(T _w, Vector<T, 3> _v) : w(_w), v(_v) {}
+  T _w(void) { return this->w; }
+  Vector<T, 3> _v(void) { return this->v; }
 
+  template <typename U> Quaternion<T> operator*(const Quaternion<U>& rhs) const
+  {
+    Quaternion<T> result;
+    result.w = this->w * rhs.w - this->v.dot_product(rhs.v);
+    result.v = this->w * rhs.v + rhs.w * this->v + this->v.cross_product(rhs.v);
+    return result;
+  }
+
+  template <typename U> void operator*=(const Quaternion<U>& rhs)
+  {
+    T _w    = this->w * rhs.w - this->v.dot_product(rhs.v);
+    this->v = this->w * rhs.v + rhs.w * this->v + this->v.cross_product(rhs.v);
+    this->w = _w;
+  }
+
+  Quaternion<T> transpose(void) const
+  {
+    Quaternion<T> result;
+    result.w = this->w;
+    result.v = -1 * this->v;
+    return result;
+  }
+
+  Quaternion<T> inverse(void) const { return this->transpose(); }
+
+  friend std::ostream& operator<<(std::ostream& os, const Quaternion<T>& p)
+  {
+    os << p.w << ' ' << p.v.transpose();
+    return os;
+  }
+
+private:
+  T w = 0;
+  Vector<T, 3> v;
+};
 } // namespace linalg
 #endif

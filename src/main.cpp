@@ -31,23 +31,6 @@ inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
 }
 
-inline linalg::Vector<double, 4>
-quaternion_mult(const linalg::Vector<double, 4>& p,
-                const linalg::Vector<double, 4>& q)
-{
-  linalg::Vector<double, 4> res;
-  linalg::Vector<double, 3> v1 = {p[1], p[2], p[3]};
-  linalg::Vector<double, 3> v2 = {q[1], q[2], q[3]};
-  res[0] = p[0] * q[0] - v1.transpose().dot_product(v2.transpose());
-  linalg::Vector<double, 3> v3 =
-      v2 * p[0] + v1 * q[0] +
-      v1.transpose().cross_product(v2.transpose()).transpose();
-  res[1] = v3[0];
-  res[2] = v3[1];
-  res[3] = v3[2];
-  return res;
-}
-
 int main(int, char**)
 {
   SDL_Init(SDL_INIT_VIDEO);
@@ -136,8 +119,8 @@ int main(int, char**)
   linalg::Vector<double, 2> Q = {100.0f, 100.0f};
   linalg::Vector<double, 3> p, q;
   linalg::Matrix<double, 3, 1> n;
-  linalg::Vector<double, 4> quaternion_rot;
-  linalg::Vector<double, 4> quaternion_rot_inverse;
+  linalg::Quaternion<double> rot;
+  linalg::Quaternion<double> rot_inv;
   int width, height, radius = 1;
   double theta;
   linalg::Vector<double, 2> center;
@@ -175,21 +158,13 @@ int main(int, char**)
     double q_norm =
         std::sqrt(std::pow(q[0], 2) + std::pow(q[1], 2) + std::pow(q[2], 2));
 
-    theta = std::acos((p.transpose().dot_product(q.transpose())) /
-                      (p_norm * q_norm));
-    n     = p.transpose().cross_product(q.transpose());
+    theta = std::acos((p.dot_product(q)) / (p_norm * q_norm));
+    n     = p.cross_product(q);
     n *= 1 /
          std::sqrt(std::pow(n[0], 2) + std::pow(n[1], 2) + std::pow(n[2], 2));
 
-    std::cout << theta << "\n";
-
-    quaternion_rot         = {std::cos(theta / 2), std::sin(theta / 2) * n[0],
-                              std::sin(theta / 2) * n[1], std::sin(theta / 2) * n[2]};
-    quaternion_rot_inverse = {quaternion_rot[0], -quaternion_rot[1],
-                              -quaternion_rot[2], -quaternion_rot[3]};
-    std::cout << "Rotation quaternion " << quaternion_rot << "\n";
-    std::cout << "Rotation inverse quaternion " << quaternion_rot_inverse
-              << "\n";
+    rot     = linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2));
+    rot_inv = rot.inverse();
 
     // Rendering
     for (std::vector<linalg::Vector<double, 3>> face : faces3d)
@@ -199,25 +174,27 @@ int main(int, char**)
         linalg::Vector<double, 3> l1 = face[i];
         linalg::Vector<double, 3> l2 = face[(i + 1) % face.size()];
 
-        l1 *= linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10});
-        l2 *= linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10});
-        linalg::Vector<double, 4> _l1 = {0, l1[0], l1[1], l1[2]};
-        linalg::Vector<double, 4> _l2 = {0, l2[0], l2[1], l2[2]};
+        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
+        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
 
-        std::cout << "l1 " << _l1 << "\n";
-        std::cout << "l2 " << _l2 << "\n";
+        linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
+        linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
 
-        _l1 = quaternion_mult(quaternion_mult(quaternion_rot, _l1),
-                              quaternion_rot_inverse);
+        std::cout << "l1 " << l1 << "\n";
+        std::cout << "l2 " << l2 << "\n";
 
-        _l2 = quaternion_mult(quaternion_mult(quaternion_rot, _l2),
-                              quaternion_rot_inverse);
+        _l1 = rot * _l1 * rot_inv;
+        _l2 = rot * _l2 * rot_inv;
+
         std::cout << "Rotated l1 " << _l1 << "\n";
         std::cout << "Rotated l2 " << _l2 << "\n";
 
-        // To 2D :
-        SDL_RenderLine(renderer, _l1[1] + origin2D_x, _l1[2] + origin2D_y,
-                       _l2[1] + origin2D_x, _l2[2] + origin2D_y);
+        l1 = _l1._v();
+        l2 = _l2._v();
+
+        // // To 2D :
+        SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
+                       l2[0] + origin2D_x, l2[1] + origin2D_y);
       }
     }
     SDL_RenderPresent(renderer);
