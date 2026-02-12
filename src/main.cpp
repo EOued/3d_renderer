@@ -32,6 +32,32 @@ inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
 }
 
+linalg::Quaternion<double>
+compute_rotation(SDL_Window* window, linalg::Vector<double, 2> MouseFixedPoint,
+                 linalg::Vector<double, 2> MouseRotatingPoint)
+{
+  int width, height, radius = 1;
+  SDL_GetWindowSize(window, &width, &height);
+  to_canonical_space(MouseFixedPoint, width, height);
+  to_canonical_space(MouseRotatingPoint, width, height);
+
+  // Trackball initialisation
+  linalg::Vector<double, 3> p = {
+      MouseFixedPoint[0], MouseFixedPoint[1],
+      trackball_z(MouseFixedPoint[0], MouseFixedPoint[1], radius)};
+  linalg::Vector<double, 3> q = {
+      MouseRotatingPoint[0], MouseRotatingPoint[1],
+      trackball_z(MouseRotatingPoint[0], MouseRotatingPoint[1], radius)};
+
+  // Works for radius = 1
+
+  double theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
+  linalg::Vector<double, 3> n = p.cross_product(q);
+  n.normalise();
+
+  return linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
+}
+
 int main(int, char**)
 {
   SDL_Init(SDL_INIT_VIDEO);
@@ -115,146 +141,111 @@ int main(int, char**)
   double origin2D_x = 100;
   double origin2D_y = 100;
 
-  // Simulating cursor position
-  linalg::Vector<double, 2> MouseFixedPoint    = {0.0f, 0.0f};
-  linalg::Vector<double, 2> MouseRotatingPoint = {0.0f, 0.0f};
-  linalg::Vector<double, 3> p, q, n;
-  linalg::Quaternion<double> rot;
-  linalg::Quaternion<double> rot_inv;
-  int width, height, radius = 1;
-  double theta;
-  linalg::Vector<double, 2> center;
-  while (1)
+  linalg::Quaternion<double> current_rotation =
+      linalg::Quaternion<double>::Identity();
+  linalg::Quaternion<double> drag_rotation =
+      linalg::Quaternion<double>::Identity();
+
+  linalg::Quaternion<double> total;
+  linalg::Quaternion<double> total_inv;
+
+  linalg::Vector<double, 2> MouseButtonPos;
+  bool running = true, redraw = false;
+  while (running)
   {
-    SDL_PollEvent(&event);
-
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
-    SDL_RenderClear(renderer);
-    SDL_RenderTexture(renderer, texture, NULL, NULL);
-
-    SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
-
-    auto faces3d = {front, back, left, right, top, bottom};
-    auto axes    = {x_axis, y_axis, z_axis};
-
-    // Convertion to canonical space
-    SDL_GetWindowSize(window, &width, &height);
-    to_canonical_space(MouseFixedPoint, width, height);
-    to_canonical_space(MouseRotatingPoint, width, height);
-
-    // Trackball initialisation
-    p = {MouseFixedPoint[0], MouseFixedPoint[1],
-         trackball_z(MouseFixedPoint[0], MouseFixedPoint[1], radius)};
-    q = {MouseRotatingPoint[0], MouseRotatingPoint[1],
-         trackball_z(MouseRotatingPoint[0], MouseRotatingPoint[1], radius)};
-
-    // Works for radius = 1
-
-    theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
-    n     = p.cross_product(q);
-    n.normalise();
-
-    rot     = linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
-    rot_inv = rot.inverse();
-
-    // Rendering
-    for (std::vector<linalg::Vector<double, 3>> face : faces3d)
+    if (SDL_WaitEvent(&event))
     {
-      for (long unsigned int i = 0; i < face.size(); i++)
+      do
       {
-        linalg::Vector<double, 3> l1 = face[i];
-        linalg::Vector<double, 3> l2 = face[(i + 1) % face.size()];
+        switch (event.type)
+        {
+        case SDL_EVENT_QUIT: running = false; break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+          MouseButtonPos = {event.button.x, event.button.y};
+          break;
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+          current_rotation *= drag_rotation;
+          drag_rotation = linalg::Quaternion<double>::Identity();
+          redraw        = true;
+          break;
+        case SDL_EVENT_MOUSE_MOTION:
+          if (event.motion.state & SDL_BUTTON_LMASK)
+          {
+            drag_rotation = compute_rotation(window, MouseButtonPos,
+                                             {event.motion.x, event.motion.y});
+            redraw        = true;
+          }
+          break;
+        }
+      } while (SDL_PollEvent(&event));
+    }
+    if (redraw)
+    {
 
-        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
-        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+      SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+      SDL_RenderClear(renderer);
+      SDL_RenderTexture(renderer, texture, NULL, NULL);
+
+      SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
+
+      auto faces3d = {front, back, left, right, top, bottom};
+      auto axes    = {x_axis, y_axis, z_axis};
+
+      // Convertion to canonical space
+
+      total     = drag_rotation * current_rotation;
+      total_inv = total.inverse();
+
+      // Rendering
+      for (std::vector<linalg::Vector<double, 3>> face : faces3d)
+      {
+        for (long unsigned int i = 0; i < face.size(); i++)
+        {
+          linalg::Vector<double, 3> l1 = face[i];
+          linalg::Vector<double, 3> l2 = face[(i + 1) % face.size()];
+
+          linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
+          linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
+
+          _l1 = total * _l1 * total_inv;
+          _l2 = total * _l2 * total_inv;
+
+          l1 = _l1._v();
+          l2 = _l2._v();
+
+          l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
+          l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+
+          // // To 2D :
+          SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
+                         l2[0] + origin2D_x, l2[1] + origin2D_y);
+        }
+      }
+
+      for (std::vector<linalg::Vector<double, 3>> axe : axes)
+      {
+        linalg::Vector<double, 3> l1 = axe[0];
+        linalg::Vector<double, 3> l2 = axe[1];
 
         linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
         linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
 
-        _l1 = rot * _l1 * rot_inv;
-        _l2 = rot * _l2 * rot_inv;
+        _l1 = total * _l1 * total_inv;
+        _l2 = total * _l2 * total_inv;
 
         l1 = _l1._v();
         l2 = _l2._v();
 
+        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
+        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+
         // // To 2D :
-        SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
-                       l2[0] + origin2D_x, l2[1] + origin2D_y);
+        SDL_RenderLine(renderer, l1[0] + 10, l1[1] + 10, l2[0] + 10,
+                       l2[1] + 10);
       }
+      SDL_RenderPresent(renderer);
+      redraw = false;
     }
-
-    for (std::vector<linalg::Vector<double, 3>> axe : axes)
-    {
-      linalg::Vector<double, 3> l1 = axe[0];
-      linalg::Vector<double, 3> l2 = axe[1];
-
-      l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
-      l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
-
-      linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
-      linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
-
-      _l1 = rot * _l1 * rot_inv;
-      _l2 = rot * _l2 * rot_inv;
-
-      l1 = _l1._v();
-      l2 = _l2._v();
-
-      // // To 2D :
-      SDL_RenderLine(renderer, l1[0] + 10, l1[1] + 10, l2[0] + 10, l2[1] + 10);
-    }
-    SDL_RenderPresent(renderer);
-
-    int running = 1;
-
-    while (running == 1)
-    {
-      // Wait indefinitely for the next event
-      if (SDL_WaitEvent(&event))
-      { // blocks until an event arrives
-        if (event.type == SDL_EVENT_KEY_DOWN)
-        {
-          switch (event.key.key)
-          {
-          case SDLK_RIGHT: break;
-          default: break;
-          }
-          running = 0; // exit loop after key press
-          break;
-        }
-        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-        {
-          if (event.button.button == SDL_BUTTON_LEFT)
-          {
-            MouseFixedPoint    = {event.button.x, event.button.y};
-            MouseRotatingPoint = {event.button.x, event.button.y};
-          }
-          running = 0;
-          break;
-        }
-        if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
-        {
-          MouseFixedPoint    = {event.button.x, event.button.y};
-          MouseRotatingPoint = {event.button.x, event.button.y};
-          running            = 0;
-          break;
-        }
-        if (event.type == SDL_EVENT_MOUSE_MOTION)
-        {
-          if (event.button.button == SDL_BUTTON_LEFT)
-            MouseRotatingPoint = {event.button.x, event.button.y};
-          running = 0;
-          break;
-        }
-        if (event.type == SDL_EVENT_QUIT)
-        {
-          running = 2; // exit if window is closed
-          break;
-        }
-      }
-    }
-
-    if (running == 2) break;
   }
 
   SDL_DestroyTexture(texture);

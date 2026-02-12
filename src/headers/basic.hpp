@@ -297,6 +297,7 @@ public:
   void normalise(void)
   {
     T norm = this->norm();
+    if (!norm) return;
     for (size_t i = 0; i < N; i++) (*this)[i] /= norm;
     return;
   }
@@ -305,6 +306,7 @@ public:
   {
     T norm = this->norm();
     Vector<T, N> result;
+    if (!norm) return result;
     for (size_t i = 0; i < N; i++) result[i] = (*this)[i] / norm;
     return result;
   }
@@ -339,6 +341,14 @@ public:
   Quaternion(Vector<T, 3> _v) : v(_v) {}
   Quaternion(T _w, Matrix<T, 3, 1> _v) : w(_w), v(_v) {}
   Quaternion(T _w, Vector<T, 3> _v) : w(_w), v(_v) {}
+
+  const static Quaternion<T> Identity()
+  {
+    Quaternion<T> result;
+    result.v[2] = 1;
+    return result;
+  }
+
   T _w(void) { return this->w; }
   Vector<T, 3> _v(void) { return this->v; }
 
