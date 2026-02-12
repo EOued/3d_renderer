@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_surface.h>
@@ -115,8 +116,8 @@ int main(int, char**)
   double origin2D_y = 100;
 
   // Simulating cursor position
-  linalg::Vector<double, 2> P = {100.0f, 100.0f};
-  linalg::Vector<double, 2> Q = {100.0f, 100.0f};
+  linalg::Vector<double, 2> MouseFixedPoint    = {0.0f, 0.0f};
+  linalg::Vector<double, 2> MouseRotatingPoint = {0.0f, 0.0f};
   linalg::Vector<double, 3> p, q, n;
   linalg::Quaternion<double> rot;
   linalg::Quaternion<double> rot_inv;
@@ -125,7 +126,6 @@ int main(int, char**)
   linalg::Vector<double, 2> center;
   while (1)
   {
-    std::cout << "------\n";
     SDL_PollEvent(&event);
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
@@ -137,18 +137,16 @@ int main(int, char**)
     auto faces3d = {front, back, left, right, top, bottom};
     auto axes    = {x_axis, y_axis, z_axis};
 
-    // Computing trackball rotation
-    P = {100.0f, 500.0f};
-    Q = {100.0f, 600.0f};
-
     // Convertion to canonical space
     SDL_GetWindowSize(window, &width, &height);
-    to_canonical_space(P, width, height);
-    to_canonical_space(Q, width, height);
+    to_canonical_space(MouseFixedPoint, width, height);
+    to_canonical_space(MouseRotatingPoint, width, height);
 
     // Trackball initialisation
-    p = {P[0], P[1], trackball_z(P[0], P[1], radius)};
-    q = {Q[0], Q[1], trackball_z(Q[0], Q[1], radius)};
+    p = {MouseFixedPoint[0], MouseFixedPoint[1],
+         trackball_z(MouseFixedPoint[0], MouseFixedPoint[1], radius)};
+    q = {MouseRotatingPoint[0], MouseRotatingPoint[1],
+         trackball_z(MouseRotatingPoint[0], MouseRotatingPoint[1], radius)};
 
     // Works for radius = 1
 
@@ -173,14 +171,8 @@ int main(int, char**)
         linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
         linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
 
-        std::cout << "l1 " << l1 << "\n";
-        std::cout << "l2 " << l2 << "\n";
-
         _l1 = rot * _l1 * rot_inv;
         _l2 = rot * _l2 * rot_inv;
-
-        std::cout << "Rotated l1 " << _l1 << "\n";
-        std::cout << "Rotated l2 " << _l2 << "\n";
 
         l1 = _l1._v();
         l2 = _l2._v();
@@ -202,14 +194,8 @@ int main(int, char**)
       linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
       linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
 
-      std::cout << "l1 " << l1 << "\n";
-      std::cout << "l2 " << l2 << "\n";
-
       _l1 = rot * _l1 * rot_inv;
       _l2 = rot * _l2 * rot_inv;
-
-      std::cout << "Rotated l1 " << _l1 << "\n";
-      std::cout << "Rotated l2 " << _l2 << "\n";
 
       l1 = _l1._v();
       l2 = _l2._v();
@@ -236,7 +222,27 @@ int main(int, char**)
           running = 0; // exit loop after key press
           break;
         }
-
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+        {
+          if (event.button.button == SDL_BUTTON_LEFT)
+            MouseFixedPoint = {event.button.x, event.button.y};
+          running = 0;
+          break;
+        }
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+        {
+          MouseFixedPoint    = {event.button.x, event.button.y};
+          MouseRotatingPoint = {event.button.x, event.button.y};
+          running            = 0;
+          break;
+        }
+        if (event.type == SDL_EVENT_MOUSE_MOTION)
+        {
+          if (event.button.button == SDL_BUTTON_LEFT)
+            MouseRotatingPoint = {event.button.x, event.button.y};
+          running = 0;
+          break;
+        }
         if (event.type == SDL_EVENT_QUIT)
         {
           running = 2; // exit if window is closed
