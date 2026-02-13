@@ -1,5 +1,6 @@
-#include "basic.hpp"
-#include <iostream>
+#include "matrix.hpp"
+#include "vectors.hpp"
+#include "quaternions.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -32,8 +33,7 @@ inline void to_canonical_space(linalg::Vector<double, 3>& vector, int s_width,
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
 }
 
-linalg::Quaternion<double> compute_rotation(SDL_Window* window,
-                                            linalg::Vector<double, 3> startPos,
+linalg::Quaternion<double> compute_rotation(linalg::Vector<double, 3> startPos,
                                             linalg::Vector<double, 3> endPos)
 {
   int radius = 1;
@@ -221,8 +221,8 @@ int main(int, char**)
         l1 = _l1._v();
         l2 = _l2._v();
 
-        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({50, 50, 50}) * l1;
-        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({50, 50, 50}) * l2;
+        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
+        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
         linalg::Vector<double, 2> L1 = {l1[0], l1[1]};
         linalg::Vector<double, 2> L2 = {l2[0], l2[1]};
 
@@ -233,8 +233,8 @@ int main(int, char**)
         L2 *= perspective;
 
         SDL_SetRenderDrawColor(renderer, color[0], color[1], color[2], 0xFF);
-        SDL_RenderLine(renderer, L1[0] + 100, L1[1] + 100, L2[0] + 100,
-                       L2[1] + 100);
+        SDL_RenderLine(renderer, L1[0] + 10, L1[1] + 10, L2[0] + 10,
+                       L2[1] + 10);
       }
 
       SDL_RenderPresent(renderer);
