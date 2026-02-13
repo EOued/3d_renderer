@@ -185,6 +185,22 @@ public:
     return result;
   }
 
+  // Scalar multiplication
+  template <typename U>
+    requires std::is_arithmetic_v<U>
+  Matrix<T, Lines, Columns> operator/(const U scalar) const
+  {
+    return (*this) * (1 / scalar);
+  }
+
+  template <typename U>
+    requires std::is_arithmetic_v<U>
+  void operator/=(const U scalar)
+  {
+    for (size_t i = 0; i < Lines * Columns; i++)
+      (*this)[i] = scalar / (*this)[i];
+  }
+
   // Unoptimised
   template <typename U> void operator*=(const Matrix<U, Columns, Columns>& rhs)
   {
@@ -345,7 +361,7 @@ public:
   const static Quaternion<T> Identity()
   {
     Quaternion<T> result;
-    result.v[2] = 1;
+    result.w = 1;
     return result;
   }
 
@@ -367,7 +383,7 @@ public:
     this->w = _w;
   }
 
-  Quaternion<T> transpose(void) const
+  Quaternion<T> conjugate(void) const
   {
     Quaternion<T> result;
     result.w = this->w;
@@ -375,7 +391,32 @@ public:
     return result;
   }
 
-  Quaternion<T> inverse(void) const { return this->transpose(); }
+  Quaternion<T> inverse(void) const
+  {
+    T n2 = w * w + v.dot_product(v); // norm squared
+
+    Quaternion<T> result;
+    result.w = w / n2;
+    result.v = (-1 * v) / n2;
+
+    return result;
+  }
+
+  auto norm(void) const
+  {
+    T sum = std::pow(w, 2);
+    for (int i = 0; i < 3; i++) sum += std::pow(this->v[i], 2);
+    return std::sqrt(sum);
+  }
+
+  void normalize(void)
+  {
+    auto norm = this->norm();
+    this->w /= norm;
+    v[0] /= norm;
+    v[1] /= norm;
+    v[2] /= norm;
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const Quaternion<T>& p)
   {

@@ -26,10 +26,23 @@ inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
 {
   linalg::Vector<double, 2> center = {static_cast<double>(s_width) - 1,
                                       static_cast<double>(s_height) - 1};
-  center *= 1.0f / 2.0f;
+  center *= 0.5f;
   int scale = std::min(s_width, s_height) - 1;
-  vector[0] = -(2.0f / scale) * (vector[0] - center[0]);
+  vector[0] = (2.0f / scale) * (vector[0] - center[0]);
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
+}
+
+inline void to_screen_space(linalg::Vector<double, 2>& vector, int s_width,
+                            int s_height)
+{
+  linalg::Vector<double, 2> center = {static_cast<double>(s_width) - 1,
+                                      static_cast<double>(s_height) - 1};
+  center *= 0.5f;
+
+  int scale = std::min(s_width, s_height) - 1;
+
+  vector[0] = (scale * 0.5f) * vector[0] + center[0];
+  vector[1] = -(scale * 0.5f) * vector[1] + center[1];
 }
 
 linalg::Quaternion<double>
@@ -72,10 +85,6 @@ int main(int, char**)
 
   SDL_CreateWindowAndRenderer("Renderer", WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE,
                               &window, &renderer);
-  surface = SDL_CreateSurface(WIDTH, HEIGHT, SDL_PIXELFORMAT_UNKNOWN);
-  texture = SDL_CreateTextureFromSurface(renderer, surface);
-
-  SDL_DestroySurface(surface);
 
   double L    = 2.0f;
   double half = L / 2.0f;
@@ -150,10 +159,10 @@ int main(int, char**)
   linalg::Quaternion<double> total_inv;
 
   linalg::Vector<double, 2> MouseButtonPos;
-  bool running = true, redraw = false;
+  bool running = true, redraw = true;
   while (running)
   {
-    if (SDL_WaitEvent(&event))
+    if (!redraw && SDL_WaitEvent(&event))
     {
       do
       {
@@ -182,18 +191,23 @@ int main(int, char**)
     if (redraw)
     {
 
-      SDL_SetRenderDrawColor(renderer, 0xFF, 0x00, 0x00, 0xFF);
+      SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
       SDL_RenderClear(renderer);
-      SDL_RenderTexture(renderer, texture, NULL, NULL);
-
-      SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0x00, 0xFF);
+      SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0x00, 0xFF);
 
       auto faces3d = {front, back, left, right, top, bottom};
-      auto axes    = {x_axis, y_axis, z_axis};
+      std::vector<std::vector<linalg::Vector<double, 3>>> axes = {
+          x_axis, y_axis, z_axis};
+      std::vector<std::vector<int>> colors = {
+          {0xFF, 0x00, 0x00},
+          {0x00, 0xFF, 0x00},
+          {0x00, 0x00, 0xFF}
+      };
 
       // Convertion to canonical space
 
-      total     = drag_rotation * current_rotation;
+      total = drag_rotation * current_rotation;
+      total.normalize();
       total_inv = total.inverse();
 
       // Rendering
@@ -215,17 +229,21 @@ int main(int, char**)
 
           l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
           l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
-
           // // To 2D :
           SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
                          l2[0] + origin2D_x, l2[1] + origin2D_y);
         }
       }
 
-      for (std::vector<linalg::Vector<double, 3>> axe : axes)
+      for (int i = 0; i < 3; i++)
       {
-        linalg::Vector<double, 3> l1 = axe[0];
-        linalg::Vector<double, 3> l2 = axe[1];
+        int width, height;
+        SDL_GetWindowSize(window, &width, &height);
+
+        std::vector<linalg::Vector<double, 3>> axe = axes[i];
+        std::vector<int> color                     = colors[i];
+        linalg::Vector<double, 3> l1               = axe[0];
+        linalg::Vector<double, 3> l2               = axe[1];
 
         linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
         linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
@@ -238,17 +256,21 @@ int main(int, char**)
 
         l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
         l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+        linalg::Vector<double, 2> L1 = {l1[0], l1[1]};
+        linalg::Vector<double, 2> L2 = {l2[0], l2[1]};
 
         // // To 2D :
-        SDL_RenderLine(renderer, l1[0] + 10, l1[1] + 10, l2[0] + 10,
-                       l2[1] + 10);
+
+        SDL_SetRenderDrawColor(renderer, color[0], color[1], color[2], 0xFF);
+        SDL_RenderLine(renderer, L1[0] + 10, L1[1] + 10, L2[0] + 10,
+                       L2[1] + 10);
       }
+
       SDL_RenderPresent(renderer);
       redraw = false;
     }
   }
 
-  SDL_DestroyTexture(texture);
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
