@@ -21,7 +21,7 @@ inline double trackball_z(const double x, const double y, const double radius)
                               : (r_2 / 2) / (std::sqrt(x_2 + y_2));
 }
 
-inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
+inline void to_canonical_space(linalg::Vector<double, 3>& vector, int s_width,
                                int s_height)
 {
   linalg::Vector<double, 2> center = {static_cast<double>(s_width) - 1,
@@ -32,43 +32,32 @@ inline void to_canonical_space(linalg::Vector<double, 2>& vector, int s_width,
   vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
 }
 
-inline void to_screen_space(linalg::Vector<double, 2>& vector, int s_width,
-                            int s_height)
+linalg::Quaternion<double> compute_rotation(SDL_Window* window,
+                                            linalg::Vector<double, 3> startPos,
+                                            linalg::Vector<double, 3> endPos)
 {
-  linalg::Vector<double, 2> center = {static_cast<double>(s_width) - 1,
-                                      static_cast<double>(s_height) - 1};
-  center *= 0.5f;
+  int radius = 1;
 
-  int scale = std::min(s_width, s_height) - 1;
+  linalg::Vector<double, 3> direction    = endPos - startPos;
+  linalg::Vector<double, 3> rotationAxis = {-direction[1], direction[0], 0.0f};
+  rotationAxis.normalise();
 
-  vector[0] = (scale * 0.5f) * vector[0] + center[0];
-  vector[1] = -(scale * 0.5f) * vector[1] + center[1];
-}
+  // // Trackball initialisation
+  linalg::Vector<double, 3> p = {startPos[0], startPos[1],
+                                 trackball_z(startPos[0], startPos[1], radius)};
+  linalg::Vector<double, 3> q = {endPos[0], endPos[1],
+                                 trackball_z(endPos[0], endPos[1], radius)};
 
-linalg::Quaternion<double>
-compute_rotation(SDL_Window* window, linalg::Vector<double, 2> MouseFixedPoint,
-                 linalg::Vector<double, 2> MouseRotatingPoint)
-{
-  int width, height, radius = 1;
-  SDL_GetWindowSize(window, &width, &height);
-  to_canonical_space(MouseFixedPoint, width, height);
-  to_canonical_space(MouseRotatingPoint, width, height);
-
-  // Trackball initialisation
-  linalg::Vector<double, 3> p = {
-      MouseFixedPoint[0], MouseFixedPoint[1],
-      trackball_z(MouseFixedPoint[0], MouseFixedPoint[1], radius)};
-  linalg::Vector<double, 3> q = {
-      MouseRotatingPoint[0], MouseRotatingPoint[1],
-      trackball_z(MouseRotatingPoint[0], MouseRotatingPoint[1], radius)};
-
-  // Works for radius = 1
+  // // Works for radius = 1
 
   double theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
   linalg::Vector<double, 3> n = p.cross_product(q);
   n.normalise();
 
-  return linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
+  linalg::Quaternion<double> retval =
+      linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
+  retval.normalize();
+  return retval;
 }
 
 int main(int, char**)
@@ -77,8 +66,6 @@ int main(int, char**)
 
   SDL_Window* window;
   SDL_Renderer* renderer;
-  SDL_Surface* surface;
-  SDL_Texture* texture;
   SDL_Event event;
 
   const int WIDTH = 320, HEIGHT = 240;
@@ -147,8 +134,13 @@ int main(int, char**)
       {0, 0, 2}
   };
 
-  double origin2D_x = 100;
-  double origin2D_y = 100;
+  std::vector<std::vector<linalg::Vector<double, 3>>> axes = {x_axis, y_axis,
+                                                              z_axis};
+  std::vector<std::vector<int>> colors                     = {
+      {0xFF, 0x00, 0x00},
+      {0x00, 0xFF, 0x00},
+      {0x00, 0x00, 0xFF}
+  };
 
   linalg::Quaternion<double> current_rotation =
       linalg::Quaternion<double>::Identity();
@@ -158,8 +150,12 @@ int main(int, char**)
   linalg::Quaternion<double> total;
   linalg::Quaternion<double> total_inv;
 
-  linalg::Vector<double, 2> MouseButtonPos;
+  linalg::Vector<double, 3> startPos;
+  linalg::Vector<double, 3> endPos;
+
   bool running = true, redraw = true;
+  int width, height;
+
   while (running)
   {
     if (!redraw && SDL_WaitEvent(&event))
@@ -170,18 +166,23 @@ int main(int, char**)
         {
         case SDL_EVENT_QUIT: running = false; break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
-          MouseButtonPos = {event.button.x, event.button.y};
+          SDL_GetWindowSize(window, &width, &height);
+          startPos = {event.button.x, event.button.y};
+          to_canonical_space(startPos, width, height);
+          redraw = true;
           break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
-          current_rotation *= drag_rotation;
+          current_rotation = drag_rotation * current_rotation;
+          current_rotation.normalize();
           drag_rotation = linalg::Quaternion<double>::Identity();
           redraw        = true;
           break;
         case SDL_EVENT_MOUSE_MOTION:
           if (event.motion.state & SDL_BUTTON_LMASK)
           {
-            drag_rotation = compute_rotation(window, MouseButtonPos,
-                                             {event.motion.x, event.motion.y});
+            endPos = {event.motion.x, event.motion.y};
+            to_canonical_space(endPos, width, height);
+            drag_rotation = compute_rotation(window, startPos, endPos);
             redraw        = true;
           }
           break;
@@ -195,45 +196,11 @@ int main(int, char**)
       SDL_RenderClear(renderer);
       SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0x00, 0xFF);
 
-      auto faces3d = {front, back, left, right, top, bottom};
-      std::vector<std::vector<linalg::Vector<double, 3>>> axes = {
-          x_axis, y_axis, z_axis};
-      std::vector<std::vector<int>> colors = {
-          {0xFF, 0x00, 0x00},
-          {0x00, 0xFF, 0x00},
-          {0x00, 0x00, 0xFF}
-      };
-
       // Convertion to canonical space
 
       total = drag_rotation * current_rotation;
       total.normalize();
       total_inv = total.inverse();
-
-      // Rendering
-      for (std::vector<linalg::Vector<double, 3>> face : faces3d)
-      {
-        for (long unsigned int i = 0; i < face.size(); i++)
-        {
-          linalg::Vector<double, 3> l1 = face[i];
-          linalg::Vector<double, 3> l2 = face[(i + 1) % face.size()];
-
-          linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
-          linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
-
-          _l1 = total * _l1 * total_inv;
-          _l2 = total * _l2 * total_inv;
-
-          l1 = _l1._v();
-          l2 = _l2._v();
-
-          l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
-          l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
-          // // To 2D :
-          SDL_RenderLine(renderer, l1[0] + origin2D_x, l1[1] + origin2D_y,
-                         l2[0] + origin2D_x, l2[1] + origin2D_y);
-        }
-      }
 
       for (int i = 0; i < 3; i++)
       {
@@ -254,16 +221,20 @@ int main(int, char**)
         l1 = _l1._v();
         l2 = _l2._v();
 
-        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
-        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
+        l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({50, 50, 50}) * l1;
+        l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({50, 50, 50}) * l2;
         linalg::Vector<double, 2> L1 = {l1[0], l1[1]};
         linalg::Vector<double, 2> L2 = {l2[0], l2[1]};
 
         // // To 2D :
 
+        double perspective = 100.0f / (100.0f + l1[2]);
+        L1 *= perspective;
+        L2 *= perspective;
+
         SDL_SetRenderDrawColor(renderer, color[0], color[1], color[2], 0xFF);
-        SDL_RenderLine(renderer, L1[0] + 10, L1[1] + 10, L2[0] + 10,
-                       L2[1] + 10);
+        SDL_RenderLine(renderer, L1[0] + 100, L1[1] + 100, L2[0] + 100,
+                       L2[1] + 100);
       }
 
       SDL_RenderPresent(renderer);
