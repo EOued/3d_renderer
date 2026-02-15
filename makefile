@@ -25,13 +25,13 @@ $(shell mkdir -p $(EXECDIR))
 $(foreach dir, $(SUBDIRS), $(shell mkdir -p $(OBJDIR)/$(dir)))
 
 $(EXEC): $(TARGETS)
-	$(GXX)  $(FLAGS) -std=$(VERSION) $(INCLUDE) -lSDL3 -o $(EXEC) $(TARGETS) $(POSTFLAGS)
+	$(GXX)  $(FLAGS) -std=$(VERSION) $(INCLUDE) -lGLEW -lGL -lglut -lSDL3 -o $(EXEC) $(TARGETS) $(POSTFLAGS)
 	@echo ""
 	@echo -e "\033[38;5;10m\033[1mFile available in $(EXEC)\033[0m"
 
 # Rule to generate object files from source files
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(GXX) $(FLAGS) -std=$(VERSION) $(INCLUDE) -c $< -o $@ $(POSTFLAGS)
+	$(GXX) $(FLAGS) -std=$(VERSION) $(INCLUDE) -c $< -lGLEW -lGL -lglut -lSDL3 -o $@ $(POSTFLAGS)
 
 # Clean rule
 clean:
