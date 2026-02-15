@@ -2,17 +2,20 @@
 #include "arcball.hpp"
 #include "vectors.hpp"
 
-void Arcball::to_canonical_space(linalg::Vector<double, 2>& vector) const
+#include <iostream>
+
+void Arcball::to_canonical_space(linalg::Vector<double, 2>& vec) const
 {
   int scale = std::min(this->width, this->height) - 1;
-  vector[0] = (2.0f / scale) * (vector[0] - center[0]);
-  vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
+  vec[0]    = (2.0f / scale) * (vec[0] - this->center[0]);
+  vec[1]    = -(2.0f / scale) * (vec[1] - this->center[1]);
 }
 
 void Arcball::updateDims(const int width, const int height)
 {
   this->width  = width;
   this->height = height;
+  computeCenter();
 }
 
 double Arcball::trackball_z(const double x, const double y) const
@@ -51,9 +54,10 @@ void Arcball::computeRotation(const double x, const double y)
   linalg::Vector<double, 3> n = p.cross_product(q);
   n.normalise();
 
-  this->drag_rotation =
+  linalg::Quaternion<double> computed =
       linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
-  this->drag_rotation.normalize();
+  computed.normalize();
+  this->drag_rotation = computed;
 }
 
 linalg::Vector<double, 3>

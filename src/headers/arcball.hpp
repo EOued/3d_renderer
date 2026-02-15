@@ -3,18 +3,21 @@
 
 #include "quaternions.hpp"
 #include "vectors.hpp"
+#include <iostream>
 
 class Arcball
 {
 public:
-  Arcball() {}
+  Arcball() { computeCenter(); }
   Arcball(const int _width, const int _height) : width(_width), height(_height)
   {
+    computeCenter();
   }
-  Arcball(const int _radius) : radius(_radius) {}
+  Arcball(const int _radius) : radius(_radius) { computeCenter(); }
   Arcball(const int _width, const int _height, const int _radius)
       : width(_width), height(_height), radius(_radius)
   {
+    computeCenter();
   }
 
   void updateDims(const int width, const int height);
@@ -45,6 +48,7 @@ protected:
   {
     this->center = {static_cast<double>(this->width) - 1,
                     static_cast<double>(this->height) - 1};
+    this->center *= 0.5f;
   }
   inline void mouseToScreen(linalg::Vector<double, 2>& vector, const double x,
                             const double y)

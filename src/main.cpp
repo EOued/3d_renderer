@@ -138,9 +138,6 @@ int main(int, char**)
 
       for (int i = 0; i < 3; i++)
       {
-        int width, height;
-        SDL_GetWindowSize(window, &width, &height);
-
         std::vector<linalg::Vector<double, 3>> axe = axes[i];
         std::vector<int> color                     = colors[i];
         linalg::Vector<double, 3> l1               = axe[0];
@@ -151,18 +148,17 @@ int main(int, char**)
 
         l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
         l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
-        linalg::Vector<double, 2> L1 = {l1[0], l1[1]};
-        linalg::Vector<double, 2> L2 = {l2[0], l2[1]};
 
         // // To 2D :
 
-        double perspective = 100.0f / (100.0f + l1[2]);
-        L1 *= perspective;
-        L2 *= perspective;
+        double perspective_1 = 100.0f / (100.0f + l1[2]);
+        double perspective_2 = 100.0f / (100.0f + l2[2]);
+        l1 *= perspective_1;
+        l2 *= perspective_2;
 
         SDL_SetRenderDrawColor(renderer, color[0], color[1], color[2], 0xFF);
-        SDL_RenderLine(renderer, L1[0] + 10, L1[1] + 10, L2[0] + 10,
-                       L2[1] + 10);
+        SDL_RenderLine(renderer, l1[0] + 10, l1[1] + 10, l2[0] + 10,
+                       l2[1] + 10);
       }
 
       SDL_RenderPresent(renderer);
