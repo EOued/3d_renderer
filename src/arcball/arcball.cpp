@@ -2,8 +2,6 @@
 #include "arcball.hpp"
 #include "vectors.hpp"
 
-#include <iostream>
-
 void Arcball::to_canonical_space(linalg::Vector<double, 2>& vec) const
 {
   int scale = std::min(this->width, this->height) - 1;
@@ -35,9 +33,9 @@ void Arcball::initRotation(const double x, const double y)
 
 void Arcball::endRotation(void)
 {
-  current_rotation = drag_rotation * current_rotation;
-  current_rotation.normalize();
-  drag_rotation = linalg::Quaternion<double>::Identity();
+  this->current_rotation = this->drag_rotation * this->current_rotation;
+  this->current_rotation.normalize();
+  this->drag_rotation = linalg::Quaternion<double>::Identity();
 }
 
 void Arcball::computeRotation(const double x, const double y)
@@ -63,6 +61,7 @@ void Arcball::computeRotation(const double x, const double y)
 linalg::Vector<double, 3>
 Arcball::rotate(const linalg::Vector<double, 3> vector) const
 {
+
   linalg::Quaternion<double> total_rotation =
       this->drag_rotation * this->current_rotation;
   total_rotation.normalize();

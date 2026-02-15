@@ -26,52 +26,6 @@ int main(int, char**)
   SDL_CreateWindowAndRenderer("Renderer", WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE,
                               &window, &renderer);
 
-  double L    = 2.0f;
-  double half = L / 2.0f;
-
-  std::vector<linalg::Vector<double, 3>> front = {
-      { half,  half, half},
-      {-half,  half, half},
-      {-half, -half, half},
-      { half, -half, half},
-  };
-
-  std::vector<linalg::Vector<double, 3>> back = {
-      { half, -half, -half}, // bottom-right
-      {-half, -half, -half}, // bottom-left
-      {-half,  half, -half}, // top-left
-      { half,  half, -half}, // top-right
-  };
-
-  std::vector<linalg::Vector<double, 3>> left = {
-      {-half,  half,  half}, // top-front
-      {-half,  half, -half}, // top-back
-      {-half, -half, -half}, // bottom-back
-      {-half, -half,  half}, // bottom-front
-  };
-
-  std::vector<linalg::Vector<double, 3>> right = {
-      {half,  half, -half}, // top-back
-      {half,  half,  half}, // top-front
-      {half, -half,  half}, // bottom-front
-      {half, -half, -half}, // bottom-back
-  };
-
-  std::vector<linalg::Vector<double, 3>> top = {
-      { half, half, -half}, // top-right back
-      {-half, half, -half}, // top-left back
-      {-half, half,  half}, // top-left front
-      { half, half,  half}, // top-right front
-  };
-
-  std::vector<linalg::Vector<double, 3>> bottom = {
-      { half, -half,  half}, // bottom-right front
-      {-half, -half,  half}, // bottom-left front
-      {-half, -half, -half}, // bottom-left back
-      { half, -half, -half}, // bottom-right back
-  };
-
-  // Faces surfaces
   std::vector<linalg::Vector<double, 3>> x_axis = {
       {0, 0, 0},
       {2, 0, 0}

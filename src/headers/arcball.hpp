@@ -3,7 +3,6 @@
 
 #include "quaternions.hpp"
 #include "vectors.hpp"
-#include <iostream>
 
 class Arcball
 {

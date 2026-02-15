@@ -27,6 +27,7 @@ public:
   {
     Quaternion<T> result;
     result.w = 1;
+    result.v = {0,0,0};
     return result;
   }
 
