@@ -1,4 +1,5 @@
 CFILES = \
+	arcball/arcball.cpp\
 	main.cpp\
 
 SRCDIR = src
@@ -6,7 +7,7 @@ SOURCES = $(foreach file, $(CFILES), $(SRCDIR)/$(file))
 OBJDIR = build/obj
 INCLUDE = -I$(SRCDIR)/headers
 OFILES = $(CFILES:.cpp=.o)
-SUBDIRS = 
+SUBDIRS = arcball
 TARGETS = $(foreach file, $(OFILES), $(OBJDIR)/$(file))
 EXECDIR = build/target
 EXECNAME = main

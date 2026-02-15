@@ -1,6 +1,7 @@
 #include "matrix.hpp"
 #include "vectors.hpp"
 #include "quaternions.hpp"
+#include "arcball.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_events.h>
@@ -11,54 +12,6 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
-
-inline double trackball_z(const double x, const double y, const double radius)
-{
-  double x_2 = std::pow(x, 2);
-  double y_2 = std::pow(y, 2);
-  double r_2 = std::pow(radius, 2);
-  // Smoothing when point exceed radius location
-  return x_2 + y_2 <= r_2 / 2 ? std::sqrt(r_2 - x_2 - y_2)
-                              : (r_2 / 2) / (std::sqrt(x_2 + y_2));
-}
-
-inline void to_canonical_space(linalg::Vector<double, 3>& vector, int s_width,
-                               int s_height)
-{
-  linalg::Vector<double, 2> center = {static_cast<double>(s_width) - 1,
-                                      static_cast<double>(s_height) - 1};
-  center *= 0.5f;
-  int scale = std::min(s_width, s_height) - 1;
-  vector[0] = (2.0f / scale) * (vector[0] - center[0]);
-  vector[1] = -(2.0f / scale) * (vector[1] - center[1]);
-}
-
-linalg::Quaternion<double> compute_rotation(linalg::Vector<double, 3> startPos,
-                                            linalg::Vector<double, 3> endPos)
-{
-  int radius = 1;
-
-  linalg::Vector<double, 3> direction    = endPos - startPos;
-  linalg::Vector<double, 3> rotationAxis = {-direction[1], direction[0], 0.0f};
-  rotationAxis.normalise();
-
-  // // Trackball initialisation
-  linalg::Vector<double, 3> p = {startPos[0], startPos[1],
-                                 trackball_z(startPos[0], startPos[1], radius)};
-  linalg::Vector<double, 3> q = {endPos[0], endPos[1],
-                                 trackball_z(endPos[0], endPos[1], radius)};
-
-  // // Works for radius = 1
-
-  double theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
-  linalg::Vector<double, 3> n = p.cross_product(q);
-  n.normalise();
-
-  linalg::Quaternion<double> retval =
-      linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
-  retval.normalize();
-  return retval;
-}
 
 int main(int, char**)
 {
@@ -142,19 +95,10 @@ int main(int, char**)
       {0x00, 0x00, 0xFF}
   };
 
-  linalg::Quaternion<double> current_rotation =
-      linalg::Quaternion<double>::Identity();
-  linalg::Quaternion<double> drag_rotation =
-      linalg::Quaternion<double>::Identity();
-
-  linalg::Quaternion<double> total;
-  linalg::Quaternion<double> total_inv;
-
-  linalg::Vector<double, 3> startPos;
-  linalg::Vector<double, 3> endPos;
-
   bool running = true, redraw = true;
   int width, height;
+  SDL_GetWindowSize(window, &width, &height);
+  Arcball arcball = Arcball(width, height);
 
   while (running)
   {
@@ -166,24 +110,18 @@ int main(int, char**)
         {
         case SDL_EVENT_QUIT: running = false; break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
-          SDL_GetWindowSize(window, &width, &height);
-          startPos = {event.button.x, event.button.y};
-          to_canonical_space(startPos, width, height);
+          arcball.initRotation(event.button.x, event.button.y);
           redraw = true;
           break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
-          current_rotation = drag_rotation * current_rotation;
-          current_rotation.normalize();
-          drag_rotation = linalg::Quaternion<double>::Identity();
-          redraw        = true;
+          arcball.endRotation();
+          redraw = true;
           break;
         case SDL_EVENT_MOUSE_MOTION:
           if (event.motion.state & SDL_BUTTON_LMASK)
           {
-            endPos = {event.motion.x, event.motion.y};
-            to_canonical_space(endPos, width, height);
-            drag_rotation = compute_rotation(window, startPos, endPos);
-            redraw        = true;
+            arcball.computeRotation(event.motion.x, event.motion.y);
+            redraw = true;
           }
           break;
         }
@@ -198,10 +136,6 @@ int main(int, char**)
 
       // Convertion to canonical space
 
-      total = drag_rotation * current_rotation;
-      total.normalize();
-      total_inv = total.inverse();
-
       for (int i = 0; i < 3; i++)
       {
         int width, height;
@@ -212,14 +146,8 @@ int main(int, char**)
         linalg::Vector<double, 3> l1               = axe[0];
         linalg::Vector<double, 3> l2               = axe[1];
 
-        linalg::Quaternion<double> _l1 = linalg::Quaternion(l1);
-        linalg::Quaternion<double> _l2 = linalg::Quaternion(l2);
-
-        _l1 = total * _l1 * total_inv;
-        _l2 = total * _l2 * total_inv;
-
-        l1 = _l1._v();
-        l2 = _l2._v();
+        l1 = arcball.rotate(l1);
+        l2 = arcball.rotate(l2);
 
         l1 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l1;
         l2 = linalg::Matrix<int, 3, 3>::ScalingMatrix({10, 10, 10}) * l2;
