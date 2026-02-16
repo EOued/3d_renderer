@@ -1,5 +1,7 @@
 // https://github.com/gruberchris/hello_opengl_and_sdl3/blob/main/main.cpp
 
+#include "arcball.hpp"
+
 #include <SDL3/SDL.h>
 #include <iostream>
 
@@ -67,22 +69,6 @@ struct Camera
   void update(float deltaTime)
   {
     distance += (targetDistance - distance) * smoothing * deltaTime;
-  }
-};
-
-struct Cube
-{
-  float rotation            = 0.0f;
-  bool rotating             = false;
-  const float rotationSpeed = 50.0f;
-
-  void update(const float deltaTime)
-  {
-    if (rotating)
-    {
-      rotation += rotationSpeed * deltaTime;
-      if (rotation >= 360.0f) rotation -= 360.0f;
-    }
   }
 };
 
@@ -462,12 +448,13 @@ int main(int argc, char* argv[])
   setupCubeData(VAO, VBO);
 
   Camera camera;
-  Cube cube;
   bool running    = true;
   Uint64 lastTime = SDL_GetTicks();
 
   int windowWidth  = WINDOW_WIDTH;
   int windowHeight = WINDOW_HEIGHT;
+
+  Arcball arcball = Arcball(windowWidth, windowHeight);
 
   while (running)
   {
@@ -480,8 +467,6 @@ int main(int argc, char* argv[])
         switch (event.key.key)
         {
         case SDLK_ESCAPE: running = false; break;
-        case SDLK_R: cube.rotating = true; break;
-        case SDLK_T: cube.rotating = false; break;
         case SDLK_EQUALS:
         case SDLK_PLUS:
         case SDLK_KP_PLUS: camera.zoomIn(); break;
@@ -494,7 +479,15 @@ int main(int argc, char* argv[])
       {
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
         glViewport(0, 0, windowWidth, windowHeight);
+        arcball.updateDims(windowWidth, windowHeight);
       }
+      else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+        arcball.initRotation(event.button.x, event.button.y);
+      else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+        arcball.endRotation();
+      else if (event.type == SDL_EVENT_MOUSE_MOTION &&
+               event.motion.state & SDL_BUTTON_LMASK)
+        arcball.computeRotation(event.motion.x, event.motion.y);
     }
 
     const Uint64 currentTime = SDL_GetTicks();
@@ -503,17 +496,15 @@ int main(int argc, char* argv[])
     lastTime = currentTime;
 
     camera.update(deltaTime);
-    cube.update(deltaTime);
 
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
-
     // Model matrix (rotation)
     auto model = glm::mat4(1.0f);
-    model      = glm::rotate(model, glm::radians(cube.rotation),
-                             glm::vec3(0.5f, 1.0f, 0.0f));
+    model *= arcball.rotate();
+    //    model = glm::rotate(model, angle, glm::vec3(vec[0], vec[1], vec[2]));
 
     // View matrix (camera)
     auto view = glm::mat4(1.0f);

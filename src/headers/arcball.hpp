@@ -1,8 +1,8 @@
 #ifndef ARCBALL_HPP
 #define ARCBALL_HPP
 
-#include "quaternions.hpp"
-#include "vectors.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 class Arcball
 {
@@ -21,36 +21,34 @@ public:
 
   void updateDims(const int width, const int height);
   double trackball_z(const double x, const double y) const;
+  double trackball_z(const glm::dvec2 vec) const;
 
   void initRotation(const double x, const double y);
   void endRotation(void);
+
   void computeRotation(const double x, const double y);
-  linalg::Vector<double, 3>
-  rotate(const linalg::Vector<double, 3> vector) const;
+  glm::mat4 rotate(void) const;
 
 protected:
-  linalg::Vector<double, 2> center;
+  glm::dvec2 center;
   int width;
   int height;
   int radius = 1;
 
-  linalg::Vector<double, 2> startPos;
-  linalg::Vector<double, 2> endPos;
+  glm::dvec2 startPos;
+  glm::dvec2 endPos;
 
-  linalg::Quaternion<double> current_rotation =
-      linalg::Quaternion<double>::Identity();
-  linalg::Quaternion<double> drag_rotation =
-      linalg::Quaternion<double>::Identity();
+  glm::dquat current_rotation = glm::identity<glm::dquat>();
+  glm::dquat drag_rotation    = glm::identity<glm::dquat>();
 
-  void to_canonical_space(linalg::Vector<double, 2>& vector) const;
+  void to_canonical_space(glm::dvec2& vector) const;
   inline void computeCenter(void)
   {
     this->center = {static_cast<double>(this->width) - 1,
                     static_cast<double>(this->height) - 1};
     this->center *= 0.5f;
   }
-  inline void mouseToScreen(linalg::Vector<double, 2>& vector, const double x,
-                            const double y)
+  inline void mouseToScreen(glm::dvec2& vector, const double x, const double y)
   {
     vector = {x, y};
     to_canonical_space(vector);

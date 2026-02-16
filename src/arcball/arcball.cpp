@@ -1,12 +1,13 @@
-#include "quaternions.hpp"
 #include "arcball.hpp"
-#include "vectors.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-void Arcball::to_canonical_space(linalg::Vector<double, 2>& vec) const
+void Arcball::to_canonical_space(glm::dvec2& vec) const
 {
   int scale = std::min(this->width, this->height) - 1;
-  vec[0]    = (2.0f / scale) * (vec[0] - this->center[0]);
-  vec[1]    = -(2.0f / scale) * (vec[1] - this->center[1]);
+  vec.x     = (2.0f / scale) * (vec.x - this->center.x);
+  vec.y     = -(2.0f / scale) * (vec.y - this->center.y);
 }
 
 void Arcball::updateDims(const int width, const int height)
@@ -26,6 +27,11 @@ double Arcball::trackball_z(const double x, const double y) const
                               : (r_2 / 2) / (std::sqrt(x_2 + y_2));
 }
 
+double Arcball::trackball_z(const glm::dvec2 vec) const
+{
+  return this->trackball_z(vec.x, vec.y);
+}
+
 void Arcball::initRotation(const double x, const double y)
 {
   mouseToScreen(this->startPos, x, y);
@@ -34,8 +40,8 @@ void Arcball::initRotation(const double x, const double y)
 void Arcball::endRotation(void)
 {
   this->current_rotation = this->drag_rotation * this->current_rotation;
-  this->current_rotation.normalize();
-  this->drag_rotation = linalg::Quaternion<double>::Identity();
+  this->current_rotation = glm::normalize(this->current_rotation);
+  this->drag_rotation    = glm::identity<glm::dquat>();
 }
 
 void Arcball::computeRotation(const double x, const double y)
@@ -43,29 +49,21 @@ void Arcball::computeRotation(const double x, const double y)
 
   mouseToScreen(this->endPos, x, y);
 
-  linalg::Vector<double, 3> p = {
-      this->startPos[0], this->startPos[1],
-      this->trackball_z(this->startPos[0], this->startPos[1])};
-  linalg::Vector<double, 3> q = {this->endPos[0], this->endPos[1],
-                                 trackball_z(this->endPos[0], this->endPos[1])};
-  double theta = std::acos((p.dot_product(q)) / (p.norm() * q.norm()));
-  linalg::Vector<double, 3> n = p.cross_product(q);
-  n.normalise();
+  glm::dvec3 p = {this->startPos, this->trackball_z(this->startPos)};
+  glm::dvec3 q = {this->endPos, trackball_z(this->endPos)};
 
-  linalg::Quaternion<double> computed =
-      linalg::Quaternion(std::cos(theta / 2), std::sin(theta / 2) * n);
-  computed.normalize();
-  this->drag_rotation = computed;
+  double theta =
+      std::acos((glm::dot(p, q) / (glm::length(p) * glm::length(q))));
+  glm::dvec3 n = glm::normalize(glm::cross(p, q));
+
+  this->drag_rotation =
+      glm::normalize(glm::dquat(std::cos(theta / 2), std::sin(theta / 2) * n));
 }
 
-linalg::Vector<double, 3>
-Arcball::rotate(const linalg::Vector<double, 3> vector) const
+glm::mat4 Arcball::rotate(void) const
 {
 
-  linalg::Quaternion<double> total_rotation =
-      this->drag_rotation * this->current_rotation;
-  total_rotation.normalize();
-
-  linalg::Quaternion<double> qVector = linalg::Quaternion(vector);
-  return (total_rotation * qVector * total_rotation.inverse())._v();
+  glm::dquat total_rotation = this->drag_rotation * this->current_rotation;
+  total_rotation            = glm::normalize(total_rotation);
+  return glm::mat4_cast(total_rotation);
 }
