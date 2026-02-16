@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
   // Load image
   int width, height, nrChannels;
   unsigned char* data =
-      stbi_load("src/assets/low_block.png", &width, &height, &nrChannels, 0);
+      stbi_load("src/assets/block.png", &width, &height, &nrChannels, 0);
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
@@ -110,11 +110,11 @@ int main(int argc, char* argv[])
   const GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
 
   std::vector<glm::mat4> matrices;
-  float cubeSize = 2.0f;
+  float cubeSize = 1.0f;
   float spacing  = cubeSize; // no gap
 
-  for (int j = -15; j < 15; j++)
-    for (int i = -15; i < 15; i++)
+  for (int j = -30; j < 30; j++)
+    for (int i = -30; i < 30; i++)
     {
       glm::mat4 model = glm::mat4(1.0f);
       model = glm::translate(model, glm::vec3{i * spacing, -15, j * spacing});
