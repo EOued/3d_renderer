@@ -8,3 +8,9 @@ This aims to create from scratch a 3d renderer, using:
 Litterature used:
 
 https://raw.org/code/trackball-rotation-using-quaternions/
+
+Dependancies:
+ 
+- OpenGL
+- SDL3
+- yaml-cpp

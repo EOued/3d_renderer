@@ -4,6 +4,7 @@
 #include "arcball.hpp"
 #include "camera.hpp"
 #include "ex_cube.hpp"
+#include "opengl.hpp"
 #include "shaders.hpp"
 
 #include <GL/glew.h>
@@ -24,13 +25,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // Set OpenGL attributes
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+  set_opengl_attribute();
 
   SDL_Window* window =
       SDL_CreateWindow("OpenGL 3D Cube - SDL3", WINDOW_WIDTH, WINDOW_HEIGHT,
