@@ -102,6 +102,11 @@ int main(int argc, char* argv[])
 
   Arcball arcball = Arcball(windowWidth, windowHeight);
 
+  const GLint viewLoc       = glGetUniformLocation(shaderProgram, "view");
+  const GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+
+  // MAIN LOOP
+
   while (running)
   {
     SDL_Event event;
@@ -166,9 +171,6 @@ int main(int argc, char* argv[])
         glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
     const GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
-    const GLint viewLoc  = glGetUniformLocation(shaderProgram, "view");
-    const GLint projectionLoc =
-        glGetUniformLocation(shaderProgram, "projection");
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
