@@ -1,3 +1,4 @@
+// Based on
 // https://github.com/gruberchris/hello_opengl_and_sdl3/blob/main/main.cpp
 
 #include "arcball.hpp"
@@ -432,13 +433,6 @@ int main(int argc, char* argv[])
             << std::endl;
   std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
   std::cout << "OpenGL Renderer: " << glGetString(GL_RENDERER) << std::endl;
-  std::cout << std::endl;
-  std::cout << "Controls:" << std::endl;
-  std::cout << "  R - Start rotation" << std::endl;
-  std::cout << "  T - Stop rotation" << std::endl;
-  std::cout << "  + - Zoom in" << std::endl;
-  std::cout << "  - - Zoom out" << std::endl;
-  std::cout << "  ESC - Exit" << std::endl;
 
   // Setup OpenGL
   glEnable(GL_DEPTH_TEST);
@@ -461,9 +455,10 @@ int main(int argc, char* argv[])
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-      if (event.type == SDL_EVENT_QUIT) { running = false; }
-      else if (event.type == SDL_EVENT_KEY_DOWN)
+      switch (event.type)
       {
+      case SDL_EVENT_QUIT: running = false; break;
+      case SDL_EVENT_KEY_DOWN:
         switch (event.key.key)
         {
         case SDLK_ESCAPE: running = false; break;
@@ -474,20 +469,22 @@ int main(int argc, char* argv[])
         case SDLK_KP_MINUS: camera.zoomOut(); break;
         default:;
         }
-      }
-      else if (event.type == SDL_EVENT_WINDOW_RESIZED)
-      {
+        break;
+      case SDL_EVENT_WINDOW_RESIZED:
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
         glViewport(0, 0, windowWidth, windowHeight);
         arcball.updateDims(windowWidth, windowHeight);
-      }
-      else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+        break;
+      case SDL_EVENT_MOUSE_BUTTON_DOWN:
         arcball.initRotation(event.button.x, event.button.y);
-      else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
-        arcball.endRotation();
-      else if (event.type == SDL_EVENT_MOUSE_MOTION &&
-               event.motion.state & SDL_BUTTON_LMASK)
-        arcball.computeRotation(event.motion.x, event.motion.y);
+        break;
+      case SDL_EVENT_MOUSE_BUTTON_UP: arcball.endRotation(); break;
+      case SDL_EVENT_MOUSE_MOTION:
+        if (event.motion.state & SDL_BUTTON_LMASK)
+          arcball.computeRotation(event.motion.x, event.motion.y);
+        break;
+      default:;
+      }
     }
 
     const Uint64 currentTime = SDL_GetTicks();
@@ -501,10 +498,10 @@ int main(int argc, char* argv[])
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
-    // Model matrix (rotation)
+
+    // Rotation
     auto model = glm::mat4(1.0f);
     model *= arcball.rotate();
-    //    model = glm::rotate(model, angle, glm::vec3(vec[0], vec[1], vec[2]));
 
     // View matrix (camera)
     auto view = glm::mat4(1.0f);
