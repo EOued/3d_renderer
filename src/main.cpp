@@ -87,6 +87,9 @@ int main(int argc, char* argv[])
   }
   stbi_image_free(data);
 
+  glUseProgram(shaderProgram);
+  glUniform1i(glGetUniformLocation(shaderProgram, "tex"), 0);
+
   GLuint VAO, VBO;
   setupCubeData(VAO, VBO);
 
@@ -145,11 +148,6 @@ int main(int argc, char* argv[])
 
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glUseProgram(shaderProgram);
-    glUniform1i(glGetUniformLocation(shaderProgram, "tex"), 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
 
     // Rotation
     auto model = glm::mat4(1.0f);
