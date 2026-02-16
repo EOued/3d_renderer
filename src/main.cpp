@@ -3,18 +3,12 @@
 
 #include "arcball.hpp"
 
-#include <SDL3/SDL.h>
-#include <iostream>
-
-#ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#else
 #include <GL/glew.h>
-#endif
-
+#include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
 constexpr int WINDOW_WIDTH  = 1024;
 constexpr int WINDOW_HEIGHT = 768;
@@ -379,17 +373,9 @@ int main(int argc, char* argv[])
   }
 
   // Set OpenGL attributes
-#ifdef __APPLE__
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
-                      SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-#else
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-#endif
 
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -416,13 +402,11 @@ int main(int argc, char* argv[])
 
   SDL_GL_SetSwapInterval(1);
 
-#ifndef __APPLE__
   if (glewInit() != GLEW_OK)
   {
     std::cerr << "Failed to initialize GLEW" << std::endl;
     return 1;
   }
-#endif
 
   // Print version information
   const int sdlVersion = SDL_GetVersion();
