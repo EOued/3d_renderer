@@ -12,7 +12,7 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       -1,
       -1,
       1,
-      0,
+      0.5,
       1,
 
       1,
@@ -36,33 +36,27 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       -1,
       1,
       1,
-      0,
+      0.5,
       0,
 
       -1,
       -1,
       1,
-      0,
+      0.5,
       1,
 
       // // Back face - Blue to Cyan
       -1,
       -1,
       -1,
-      0,
-      0,
-
-      -1,
-      1,
-      -1,
-      1,
+      0.5,
       0,
 
-      1,
+      -1,
       1,
       -1,
       1,
-      1,
+      0,
 
       1,
       1,
@@ -71,15 +65,21 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       1,
 
       1,
+      1,
+      -1,
+      1,
+      1,
+
+      1,
       -1,
       -1,
-      0,
+      0.5,
       1,
 
       -1,
       -1,
       -1,
-      0,
+      0.5,
       0,
 
       // Top face - Green to Yellow
@@ -92,19 +92,19 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       -1,
       1,
       1,
-      1,
+      0.5,
       0,
 
       1,
       1,
       1,
-      1,
+      0.5,
       1,
 
       1,
       1,
       1,
-      1,
+      0.5,
       1,
 
       1,
@@ -123,20 +123,14 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       -1,
       -1,
       -1,
-      0,
-      0,
-
-      1,
-      -1,
-      -1,
-      1,
+      0.5,
       0,
 
       1,
       -1,
+      -1,
       1,
-      1,
-      1,
+      0,
 
       1,
       -1,
@@ -144,23 +138,29 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       1,
       1,
 
+      1,
+      -1,
+      1,
+      1,
+      1,
+
       -1,
       -1,
       1,
-      0,
+      0.5,
       1,
 
       -1,
       -1,
       -1,
-      0,
+      0.5,
       0,
 
       // Right face - Orange to Pink
       1,
       -1,
       -1,
-      0,
+      0.5,
       0,
 
       1,
@@ -184,33 +184,27 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
       1,
       -1,
       1,
-      0,
+      0.5,
       1,
 
       1,
       -1,
       -1,
-      0,
+      0.5,
       0,
 
       // Left face - Teal to Lime
       -1,
       -1,
       -1,
-      0,
-      0,
-
-      -1,
-      -1,
-      1,
-      1,
+      0.5,
       0,
 
       -1,
+      -1,
       1,
       1,
-      1,
-      1,
+      0,
 
       -1,
       1,
@@ -220,14 +214,20 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
 
       -1,
       1,
+      1,
+      1,
+      1,
+
       -1,
-      0,
+      1,
+      -1,
+      0.5,
       1,
 
       -1,
       -1,
       -1,
-      0,
+      0.5,
       0,
   };
 

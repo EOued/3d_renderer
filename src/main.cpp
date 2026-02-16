@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_CULL_FACE);
 
   const GLuint shaderProgram = createShaderProgram();
 
@@ -72,15 +73,16 @@ int main(int argc, char* argv[])
   glBindTexture(GL_TEXTURE_2D, texture);
 
   // Set wrapping / filtering
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                  GL_LINEAR_MIPMAP_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   // Load image
   int width, height, nrChannels;
   unsigned char* data =
-      stbi_load("src/assets/block.png", &width, &height, &nrChannels, 0);
+      stbi_load("src/assets/low_block.png", &width, &height, &nrChannels, 0);
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
@@ -107,13 +109,15 @@ int main(int argc, char* argv[])
   const GLint viewLoc       = glGetUniformLocation(shaderProgram, "view");
   const GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
 
-  // Cube model
   std::vector<glm::mat4> matrices;
+  float cubeSize = 2.0f;
+  float spacing  = cubeSize; // no gap
+
   for (int j = -15; j < 15; j++)
     for (int i = -15; i < 15; i++)
     {
-      auto model = glm::mat4(1.0f);
-      model      = glm::translate(model, glm::vec3{2 * i, -15, 2 * j});
+      glm::mat4 model = glm::mat4(1.0f);
+      model = glm::translate(model, glm::vec3{i * spacing, -15, j * spacing});
       matrices.push_back(model);
     }
 
