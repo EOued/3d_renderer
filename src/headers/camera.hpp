@@ -5,8 +5,8 @@
 
 struct Camera
 {
-  float distance          = 20.0f;
-  float targetDistance    = 20.0f;
+  float distance          = 53.0f;
+  float targetDistance    = 53.0f;
   const float minDistance = 2.0f;
   const float maxDistance = 100.0f;
   const float zoomSpeed   = 3.0f;

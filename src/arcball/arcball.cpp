@@ -44,7 +44,8 @@ void Arcball::endRotation(void)
   this->drag_rotation    = glm::identity<glm::dquat>();
 }
 
-void Arcball::computeRotation(const double x, const double y)
+void Arcball::computeRotation(const double x, const double y,
+                              const bool is_rotation_only)
 {
 
   mouseToScreen(this->endPos, x, y);
@@ -55,6 +56,8 @@ void Arcball::computeRotation(const double x, const double y)
   double theta =
       std::acos((glm::dot(p, q) / (glm::length(p) * glm::length(q))));
   glm::dvec3 n = glm::normalize(glm::cross(p, q));
+  n.z          = 0;
+  if (is_rotation_only) n.x = 0;
 
   this->drag_rotation =
       glm::normalize(glm::dquat(std::cos(theta / 2), std::sin(theta / 2) * n));

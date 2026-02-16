@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
   // Load image
   int width, height, nrChannels;
   unsigned char* data =
-      stbi_load("src/brick.jpeg", &width, &height, &nrChannels, 0);
+      stbi_load("src/assets/block.png", &width, &height, &nrChannels, 0);
   if (data)
   {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
@@ -109,15 +109,13 @@ int main(int argc, char* argv[])
 
   // Cube model
   std::vector<glm::mat4> matrices;
-  for (int j = 0; j < 10; j++)
-    for (int i = 0; i < 2; i++)
-      for (int _ = 0; _ < 5; _++)
-      {
-        auto model = glm::mat4(1.0f);
-        model      = glm::translate(
-            model, glm::vec3{(i == 0 ? 1 : -1) * 2 * _, -8, -2 * j});
-        matrices.push_back(model);
-      }
+  for (int j = -15; j < 15; j++)
+    for (int i = -15; i < 15; i++)
+    {
+      auto model = glm::mat4(1.0f);
+      model      = glm::translate(model, glm::vec3{2 * i, -15, 2 * j});
+      matrices.push_back(model);
+    }
 
   unsigned int buffer;
   glGenBuffers(1, &buffer);
@@ -178,8 +176,9 @@ int main(int argc, char* argv[])
         break;
       case SDL_EVENT_MOUSE_BUTTON_UP: arcball.endRotation(); break;
       case SDL_EVENT_MOUSE_MOTION:
-        if (event.motion.state & SDL_BUTTON_LMASK)
-          arcball.computeRotation(event.motion.x, event.motion.y);
+        if (event.motion.state & (SDL_BUTTON_RMASK | SDL_BUTTON_LMASK))
+          arcball.computeRotation(event.motion.x, event.motion.y,
+                                  event.motion.state & SDL_BUTTON_RMASK);
         break;
       default:;
       }
@@ -197,13 +196,13 @@ int main(int argc, char* argv[])
     // View matrix (camera)
     auto view = glm::mat4(1.0f);
     view      = glm::translate(view, glm::vec3(0.0f, 0.0f, -camera.distance));
-    view *= arcball.rotate();
+    view *= glm::transpose(arcball.rotate());
 
     // Projection matrix
     const float aspect =
         static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     glm::mat4 projection =
-        glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+        glm::perspective(glm::radians(90.0f), aspect, 0.1f, 100.0f);
 
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));

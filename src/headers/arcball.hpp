@@ -26,7 +26,8 @@ public:
   void initRotation(const double x, const double y);
   void endRotation(void);
 
-  void computeRotation(const double x, const double y);
+  void computeRotation(const double x, const double y,
+                       const bool is_rotation_only);
   glm::mat4 rotate(void) const;
 
 protected:
@@ -39,7 +40,8 @@ protected:
   glm::dvec2 endPos;
 
   glm::dquat current_rotation = glm::identity<glm::dquat>();
-  glm::dquat drag_rotation    = glm::identity<glm::dquat>();
+  glm::dquat drag_rotation =
+      glm::normalize(glm::dquat{0.948576, -0.3154, -0.0269403, 0});
 
   void to_canonical_space(glm::dvec2& vector) const;
   inline void computeCenter(void)
