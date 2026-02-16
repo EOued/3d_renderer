@@ -1,5 +1,7 @@
 // Based on
 // https://github.com/gruberchris/hello_opengl_and_sdl3/blob/main/main.cpp
+// and
+// https://learnopengl.com/code_viewer_gh.php?code=src/4.advanced_opengl/10.3.asteroids_instanced/asteroids_instanced.cpp
 #define STB_IMAGE_IMPLEMENTATION
 #include "arcball.hpp"
 #include "camera.hpp"
@@ -105,6 +107,45 @@ int main(int argc, char* argv[])
   const GLint viewLoc       = glGetUniformLocation(shaderProgram, "view");
   const GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
 
+  // Cube model
+  std::vector<glm::mat4> matrices;
+  for (int j = 0; j < 10; j++)
+    for (int i = 0; i < 2; i++)
+      for (int _ = 0; _ < 5; _++)
+      {
+        auto model = glm::mat4(1.0f);
+        model      = glm::translate(
+            model, glm::vec3{(i == 0 ? 1 : -1) * 2 * _, -8, -2 * j});
+        matrices.push_back(model);
+      }
+
+  unsigned int buffer;
+  glGenBuffers(1, &buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, buffer);
+  glBufferData(GL_ARRAY_BUFFER, matrices.size() * sizeof(glm::mat4),
+               matrices.data(), GL_STATIC_DRAW);
+
+  glBindVertexArray(VAO);
+  // set attribute pointers for matrix (4 times vec4)
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void*)(sizeof(glm::vec4)));
+  glEnableVertexAttribArray(4);
+  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void*)(2 * sizeof(glm::vec4)));
+  glEnableVertexAttribArray(5);
+  glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                        (void*)(3 * sizeof(glm::vec4)));
+
+  glVertexAttribDivisor(2, 1);
+  glVertexAttribDivisor(3, 1);
+  glVertexAttribDivisor(4, 1);
+  glVertexAttribDivisor(5, 1);
+
+  glBindVertexArray(0);
+
   // MAIN LOOP
 
   while (running)
@@ -148,16 +189,10 @@ int main(int argc, char* argv[])
     const float deltaTime =
         static_cast<float>(currentTime - lastTime) / 1000.0f;
     lastTime = currentTime;
-
     camera.update(deltaTime);
 
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Cube model
-    auto model = glm::mat4(1.0f);
-
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 
     // View matrix (camera)
     auto view = glm::mat4(1.0f);
@@ -170,14 +205,11 @@ int main(int argc, char* argv[])
     glm::mat4 projection =
         glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
-    const GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
-
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 36, matrices.size());
 
     SDL_GL_SwapWindow(window);
   }

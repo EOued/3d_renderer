@@ -1,7 +1,7 @@
 #ifndef SHADERS_HPP
 #define SHADERS_HPP
 
-#include "CONSTS.hpp"
+#include "glsl.hpp"
 #include <GL/glew.h>
 #include <iostream>
 
