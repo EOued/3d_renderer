@@ -4,6 +4,7 @@
 #include "yaml-cpp/node/node.h"
 #include "yaml-cpp/parser.h"
 #include "yaml-cpp/yaml.h"
+#include <GL/glew.h>
 #include <SDL3/SDL.h>
 #include <iostream>
 
@@ -23,6 +24,18 @@ void set_opengl_attribute(void)
 
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, doublebuffer);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, depthsize);
+}
+
+void print_opengl_infos(void)
+{
+  const int sdlVersion = SDL_GetVersion();
+  const int sdlMajor   = SDL_VERSIONNUM_MAJOR(sdlVersion);
+  const int sdlMinor   = SDL_VERSIONNUM_MINOR(sdlVersion);
+  const int sdlPatch   = SDL_VERSIONNUM_MICRO(sdlVersion);
+  std::cout << "SDL Version: " << sdlMajor << "." << sdlMinor << "." << sdlPatch
+            << std::endl;
+  std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
+  std::cout << "OpenGL Renderer: " << glGetString(GL_RENDERER) << std::endl;
 }
 
 #endif

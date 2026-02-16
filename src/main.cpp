@@ -55,15 +55,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // Print version information
-  const int sdlVersion = SDL_GetVersion();
-  const int sdlMajor   = SDL_VERSIONNUM_MAJOR(sdlVersion);
-  const int sdlMinor   = SDL_VERSIONNUM_MINOR(sdlVersion);
-  const int sdlPatch   = SDL_VERSIONNUM_MICRO(sdlVersion);
-  std::cout << "SDL Version: " << sdlMajor << "." << sdlMinor << "." << sdlPatch
-            << std::endl;
-  std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;
-  std::cout << "OpenGL Renderer: " << glGetString(GL_RENDERER) << std::endl;
+  print_opengl_infos();
 
   // Setup OpenGL
   glEnable(GL_DEPTH_TEST);
