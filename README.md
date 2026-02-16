@@ -14,3 +14,4 @@ Dependancies:
 - OpenGL
 - SDL3
 - yaml-cpp
+- stb images

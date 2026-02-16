@@ -4,9 +4,9 @@
 static const auto vertexShaderSource = R"(
 #version 410 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
+layout (location = 1) in vec2 aTexCoord;
 
-out vec3 ourColor;
+out vec2 TexCoord;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -15,18 +15,20 @@ uniform mat4 projection;
 void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
-    ourColor = aColor;
+    TexCoord = aTexCoord;
 }
 )";
 
 static const auto fragmentShaderSource = R"(
 #version 410 core
-in vec3 ourColor;
+in vec2 TexCoord;
 out vec4 FragColor;
+
+uniform sampler2D tex;
 
 void main()
 {
-    FragColor = vec4(ourColor, 1.0);
+    FragColor = texture(tex, TexCoord);
 }
 )";
 

@@ -1,11 +1,12 @@
 // Based on
 // https://github.com/gruberchris/hello_opengl_and_sdl3/blob/main/main.cpp
-
+#define STB_IMAGE_IMPLEMENTATION
 #include "arcball.hpp"
 #include "camera.hpp"
 #include "ex_cube.hpp"
 #include "opengl.hpp"
 #include "shaders.hpp"
+#include "stb_image.h"
 
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
@@ -59,8 +60,33 @@ int main(int argc, char* argv[])
 
   // Setup OpenGL
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   const GLuint shaderProgram = createShaderProgram();
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  // Set wrapping / filtering
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  // Load image
+  int width, height, nrChannels;
+  unsigned char* data =
+      stbi_load("src/brick.jpeg", &width, &height, &nrChannels, 0);
+  if (data)
+  {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                 nrChannels == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  stbi_image_free(data);
+
   GLuint VAO, VBO;
   setupCubeData(VAO, VBO);
 
@@ -121,6 +147,9 @@ int main(int argc, char* argv[])
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(shaderProgram);
+    glUniform1i(glGetUniformLocation(shaderProgram, "tex"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     // Rotation
     auto model = glm::mat4(1.0f);
