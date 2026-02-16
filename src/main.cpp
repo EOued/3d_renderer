@@ -2,7 +2,9 @@
 // https://github.com/gruberchris/hello_opengl_and_sdl3/blob/main/main.cpp
 
 #include "arcball.hpp"
+#include "camera.hpp"
 #include "ex_cube.hpp"
+#include "shaders.hpp"
 
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
@@ -13,104 +15,6 @@
 
 constexpr int WINDOW_WIDTH  = 1024;
 constexpr int WINDOW_HEIGHT = 768;
-
-auto vertexShaderSource = R"(
-#version 410 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-
-out vec3 ourColor;
-
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
-void main()
-{
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
-    ourColor = aColor;
-}
-)";
-
-auto fragmentShaderSource = R"(
-#version 410 core
-in vec3 ourColor;
-out vec4 FragColor;
-
-void main()
-{
-    FragColor = vec4(ourColor, 1.0);
-}
-)";
-
-struct Camera
-{
-  float distance          = 5.0f;
-  float targetDistance    = 5.0f;
-  const float minDistance = 2.0f;
-  const float maxDistance = 15.0f;
-  const float zoomSpeed   = 3.0f;
-  const float smoothing   = 8.0f;
-
-  void zoomIn()
-  {
-    targetDistance = std::max(minDistance, targetDistance - zoomSpeed);
-  }
-
-  void zoomOut()
-  {
-    targetDistance = std::min(maxDistance, targetDistance + zoomSpeed);
-  }
-
-  void update(float deltaTime)
-  {
-    distance += (targetDistance - distance) * smoothing * deltaTime;
-  }
-};
-
-GLuint compileShader(const GLenum type, const char* source)
-{
-  const GLuint shader = glCreateShader(type);
-  glShaderSource(shader, 1, &source, nullptr);
-  glCompileShader(shader);
-
-  GLint success;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (!success)
-  {
-    char infoLog[512];
-    glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-    std::cerr << "Shader compilation failed: " << infoLog << std::endl;
-  }
-  return shader;
-}
-
-GLuint createShaderProgram()
-{
-  const GLuint vertexShader =
-      compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-  const GLuint fragmentShader =
-      compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
-
-  const GLuint program = glCreateProgram();
-  glAttachShader(program, vertexShader);
-  glAttachShader(program, fragmentShader);
-  glLinkProgram(program);
-
-  GLint success;
-  glGetProgramiv(program, GL_LINK_STATUS, &success);
-  if (!success)
-  {
-    char infoLog[512];
-    glGetProgramInfoLog(program, 512, nullptr, infoLog);
-    std::cerr << "Program linking failed: " << infoLog << std::endl;
-  }
-
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
-
-  return program;
-}
 
 int main(int argc, char* argv[])
 {
