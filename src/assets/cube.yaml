@@ -1,0 +1,50 @@
+texture_ref: block.png
+sprite_height: 16
+sprite_width: 16
+im_height: 32
+im_width: 32
+baseObj:
+  face:
+    0:
+      0: [-0.5, -0.5, 0.5]
+      1: [0.5, -0.5, 0.5]
+      2: [0.5, 0.5, 0.5]
+    1:
+      2: [0.5, 0.5, 0.5]
+      3: [-0.5, 0.5, 0.5]
+      0: [-0.5, -0.5, 0.5]
+    tex:
+      0: [0, 1]
+      1: [1, 1]
+      2: [1, 0]
+      3: [0, 0]
+faces:
+  0:
+    name: front
+    depends: face
+    texPos: 1
+  2:
+    name: back
+    depends: face
+    texPos: 1
+    translation: [0, 0, -1]
+  3:
+    name: left
+    depends: face
+    texPos: 1
+    rotation: [0, -90, 0]
+  4:
+    name: right
+    depends: face
+    texPos: 1
+    rotation: [0, 90, 0]
+  5:
+    name: down
+    depends: face
+    texPos: 2
+    rotation: [90, 0, 0]
+  6:
+    name: up
+    depends: face
+    texPos: 0
+    rotation: [-90, 0, 0]

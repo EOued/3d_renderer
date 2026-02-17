@@ -39,9 +39,10 @@ protected:
   glm::dvec2 startPos;
   glm::dvec2 endPos;
 
-  glm::dquat current_rotation = glm::identity<glm::dquat>();
-  glm::dquat drag_rotation =
+  glm::dquat current_rotation =
       glm::normalize(glm::dquat{0.948576, -0.3154, -0.0269403, 0});
+
+  glm::dquat drag_rotation = glm::identity<glm::dquat>();
 
   void to_canonical_space(glm::dvec2& vector) const;
   inline void computeCenter(void)

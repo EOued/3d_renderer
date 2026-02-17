@@ -1,235 +1,16 @@
 #ifndef EX_CUBE_HPP
 #define EX_CUBE_HPP
 
+#include "texturer.hpp"
 #include <GL/glew.h>
+#include <vector>
 
 void setupCubeData(GLuint& VAO, GLuint& VBO)
 {
 
-  constexpr float vertices[] = {
-      // Positions
-      // Front face
-      -0.5,
-      -0.5,
-      0.5,
-      0.5,
-      1,
-
-      0.5,
-      -0.5,
-      0.5,
-      1,
-      1,
-
-      0.5,
-      0.5,
-      0.5,
-      1,
-      0,
-
-      0.5,
-      0.5,
-      0.5,
-      1,
-      0,
-
-      -0.5,
-      0.5,
-      0.5,
-      0.5,
-      0,
-
-      -0.5,
-      -0.5,
-      0.5,
-      0.5,
-      1,
-
-      // Back face
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      -0.5,
-      0.5,
-      -0.5,
-      1,
-      0,
-
-      0.5,
-      0.5,
-      -0.5,
-      1,
-      1,
-
-      0.5,
-      0.5,
-      -0.5,
-      1,
-      1,
-
-      0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      1,
-
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      // Top face
-      -0.5,
-      0.5,
-      -0.5,
-      0,
-      0,
-
-      -0.5,
-      0.5,
-      0.5,
-      0.5,
-      0,
-
-      0.5,
-      0.5,
-      0.5,
-      0.5,
-      1,
-
-      0.5,
-      0.5,
-      0.5,
-      0.5,
-      1,
-
-      0.5,
-      0.5,
-      -0.5,
-      0,
-      1,
-
-      -0.5,
-      0.5,
-      -0.5,
-      0,
-      0,
-
-      // Bottom face
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      0.5,
-      -0.5,
-      -0.5,
-      1,
-      0,
-
-      0.5,
-      -0.5,
-      0.5,
-      1,
-      1,
-
-      0.5,
-      -0.5,
-      0.5,
-      1,
-      1,
-
-      -0.5,
-      -0.5,
-      0.5,
-      0.5,
-      1,
-
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      // Right face
-      0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      0.5,
-      0.5,
-      -0.5,
-      1,
-      0,
-
-      0.5,
-      0.5,
-      0.5,
-      1,
-      1,
-
-      0.5,
-      0.5,
-      0.5,
-      1,
-      1,
-
-      0.5,
-      -0.5,
-      0.5,
-      0.5,
-      1,
-
-      0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      // Left face
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-
-      -0.5,
-      -0.5,
-      0.5,
-      1,
-      0,
-
-      -0.5,
-      0.5,
-      0.5,
-      1,
-      1,
-
-      -0.5,
-      0.5,
-      0.5,
-      1,
-      1,
-
-      -0.5,
-      0.5,
-      -0.5,
-      0.5,
-      1,
-
-      -0.5,
-      -0.5,
-      -0.5,
-      0.5,
-      0,
-  };
+  std::cout << "uwu" << '\n';
+  write_quad_file("cube", "src/assets");
+  std::vector<float> vertices = readQuadFile("cube", "src/assets");
 
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
@@ -237,7 +18,8 @@ void setupCubeData(GLuint& VAO, GLuint& VBO)
   glBindVertexArray(VAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
+               vertices.data(), GL_STATIC_DRAW);
 
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void*)nullptr);
