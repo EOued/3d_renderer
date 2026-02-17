@@ -61,6 +61,16 @@ int main(int argc, char* argv[])
 
   print_opengl_infos();
 
+  std::cout << "Initalizing quads files\n";
+  std::vector<std::string> files = {"cube"};
+  for (const auto& file : files)
+  {
+    std::cout << "\tFile " << file << "";
+    auto tf = TextureFile(file, "src/assets");
+    if (!tf.isQuadWritten()) tf.writeQuadFile();
+    std::cout << "\r\tFile " << file << ": [OK]\n";
+  }
+
   // Setup OpenGL
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);

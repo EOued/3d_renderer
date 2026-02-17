@@ -8,9 +8,8 @@
 void setupCubeData(GLuint& VAO, GLuint& VBO)
 {
 
-  std::cout << "uwu" << '\n';
-  write_quad_file("cube", "src/assets");
-  std::vector<float> vertices = readQuadFile("cube", "src/assets");
+  auto tf                     = TextureFile("cube", "src/assets");
+  std::vector<float> vertices = tf.readQuadFile();
 
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
