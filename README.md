@@ -9,6 +9,7 @@ Litterature used:
 
 https://raw.org/code/trackball-rotation-using-quaternions/
 
+
 Dependancies:
  
 - OpenGL

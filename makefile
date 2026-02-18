@@ -1,6 +1,7 @@
 CFILES = \
 	texturer/texturer.cpp\
 	arcball/arcball.cpp\
+	camera/camera.cpp\
 	main.cpp\
 
 SRCDIR = src
@@ -9,7 +10,7 @@ OBJDIR = build/obj
 INCLUDE = -I$(SRCDIR)/headers
 LIBRARIES = -lGLEW -lGL -lglut -lSDL3 -lyaml-cpp
 OFILES = $(CFILES:.cpp=.o)
-SUBDIRS = arcball texturer
+SUBDIRS = arcball texturer camera
 TARGETS = $(foreach file, $(OFILES), $(OBJDIR)/$(file))
 EXECDIR = build/target
 EXECNAME = main

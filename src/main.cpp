@@ -15,13 +15,14 @@
 #include <SDL3/SDL.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 constexpr int WINDOW_WIDTH  = 1024;
 constexpr int WINDOW_HEIGHT = 768;
 
-int main(int argc, char* argv[])
+int main(void)
 {
   if (!SDL_Init(SDL_INIT_VIDEO))
   {
@@ -76,6 +77,7 @@ int main(int argc, char* argv[])
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_CULL_FACE);
+  SDL_HideCursor();
 
   const GLuint shaderProgram = createShaderProgram();
 
@@ -161,9 +163,25 @@ int main(int argc, char* argv[])
 
   // MAIN LOOP
 
+  glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
+  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+  glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+
+  float yaw       = -90.0f;
+  float pitch     = 0.0f;
+  float lastX     = 800.0f / 2.0;
+  float lastY     = 600.0 / 2.0;
+  float fov       = 90.0f;
+  bool firstMouse = true;
+
   while (running)
   {
+    const Uint64 currentTime = SDL_GetTicks();
+    const double deltaTime   = static_cast<float>(currentTime - lastTime);
+    lastTime                 = currentTime;
+
     SDL_Event event;
+    float cameraSpeed = static_cast<float>(0.01 * deltaTime);
     while (SDL_PollEvent(&event))
     {
       switch (event.type)
@@ -173,11 +191,17 @@ int main(int argc, char* argv[])
         switch (event.key.key)
         {
         case SDLK_ESCAPE: running = false; break;
-        case SDLK_EQUALS:
-        case SDLK_PLUS:
-        case SDLK_KP_PLUS: camera.zoomIn(); break;
-        case SDLK_MINUS:
-        case SDLK_KP_MINUS: camera.zoomOut(); break;
+        case SDLK_W: cameraPos += cameraSpeed * cameraFront; break;
+        case SDLK_S: cameraPos -= cameraSpeed * cameraFront; break;
+        case SDLK_A:
+          cameraPos -=
+              glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+          break;
+        case SDLK_D:
+          cameraPos +=
+              glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+          break;
+
         default:;
         }
         break;
@@ -191,33 +215,58 @@ int main(int argc, char* argv[])
         break;
       case SDL_EVENT_MOUSE_BUTTON_UP: arcball.endRotation(); break;
       case SDL_EVENT_MOUSE_MOTION:
-        if (event.motion.state & (SDL_BUTTON_RMASK | SDL_BUTTON_LMASK))
-          arcball.computeRotation(event.motion.x, event.motion.y,
-                                  event.motion.state & SDL_BUTTON_RMASK);
-        break;
+      {
+        int windowCenterX = windowWidth / 2;
+        int windowCenterY = windowHeight / 2;
+
+        if (firstMouse)
+        {
+          lastX      = windowCenterX;
+          lastY      = windowCenterY;
+          firstMouse = false;
+        }
+
+        // Compute offsets from center
+        float xOffset = event.motion.x - lastX;
+        float yOffset = lastY - event.motion.y; // inverted Y
+        lastX         = windowCenterX;
+        lastY         = windowCenterY;
+
+        // Apply sensitivity
+        float sensitivity = 0.1f;
+        xOffset *= sensitivity;
+        yOffset *= sensitivity;
+
+        yaw += xOffset;
+        pitch += yOffset;
+
+        // Clamp pitch
+        pitch = std::clamp(pitch, -89.0f, 89.0f);
+
+        // Compute camera front vector
+        glm::vec3 front;
+        front.x     = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y     = sin(glm::radians(pitch));
+        front.z     = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(front);
+
+        // Warp cursor to center for next frame
+        SDL_WarpMouseInWindow(window, windowCenterX, windowCenterY);
+      }
       default:;
       }
     }
 
-    const Uint64 currentTime = SDL_GetTicks();
-    const float deltaTime =
-        static_cast<float>(currentTime - lastTime) / 1000.0f;
-    lastTime = currentTime;
-    camera.update(deltaTime);
-
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // View matrix (camera)
-    auto view = glm::mat4(1.0f);
-    view      = glm::translate(view, glm::vec3(0.0f, 0.0f, -camera.distance));
-    view *= glm::transpose(arcball.rotate());
+    glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
     // Projection matrix
     const float aspect =
         static_cast<float>(windowWidth) / static_cast<float>(windowHeight);
     glm::mat4 projection =
-        glm::perspective(glm::radians(90.0f), aspect, 0.1f, 100.0f);
+        glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f);
 
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
